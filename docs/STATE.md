@@ -3,7 +3,7 @@
 > Updated at the end of every session, by whichever agent was driving.
 > Keep it under a page. This is a baton, not a diary.
 
-**Last updated:** 2026-08-18 by claude-code
+**Last updated:** 2026-08-19 by claude-code
 
 ## Where things stand
 
@@ -11,9 +11,11 @@ Project J.K. is live and usable right now. Running `claude` from this folder boo
 
 The pre-existing Zettelkasten layer in that vault was left completely untouched: 71 notes across `1 - Rough Notes` through `7 - Career`, none of them modified during the build (verified by mtime, not by assumption). The vault holds 87 markdown files in total counting `copilot/` (15) and `TaskNotes/` (1). Nothing was renamed or moved, so no `[[wikilinks]]` broke.
 
+A validator (`scripts/validate.py`) now walks the vault the way the agent does at boot and currently reports `PASSED - 15 checks, 63 wikilinks resolved`. A clean-room test (fresh clone from GitHub into an empty vault) confirms `setup.ps1` works for someone who is not Kevin.
+
 ## In progress
 
-- [ ] Nothing half-done in this repo. The build completed.
+- [ ] Nothing half-done in this repo. The build completed and validates clean.
 
 ## The exact next step
 

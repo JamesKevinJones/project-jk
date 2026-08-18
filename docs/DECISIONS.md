@@ -8,6 +8,30 @@ deliberately. If a choice would look wrong without context, it belongs here.
 
 ---
 
+## 2026-08-19 — Correctness is proved by a validator, not by reading the files
+
+**Context.** This project is config, so there is no build and no test suite. The failure mode that matters is a dead end the agent hits mid-task: a wikilink that resolves to nothing, a folder with no index, a Job missing its boot chain. All of it looks fine when you read it and only bites during real work.
+
+**Decision.** `scripts/validate.py` traverses the vault the way the agent does at boot and exits non-zero on any break. It is the proof command for this repo.
+
+**Why not the alternative.** Manual review is what produced the bugs it found: eight wikilinks pointing at `[[VAULT INDEX]]` when Obsidian resolves by filename (`VAULT-INDEX`), and a fresh install with no `Active Priorities.md` despite the startup sequence reading it at step 3. Both were invisible to inspection and obvious to a traversal.
+
+**Consequences.** Run it after any structural change to the vault. When the vault grows a new folder or field value, the constants at the top of the script have to grow with it, or it will report false failures.
+
+---
+
+## 2026-08-19 — Code spans are not links, and the validator has to know that
+
+**Context.** The first validator flagged 17 broken wikilinks. Most were false positives: prose *about* wikilink syntax, written as `` `[[wikilinks]]` `` inside inline code spans. Markdown never parses a link inside code, so Obsidian never tried to resolve them.
+
+**Decision.** Strip fenced blocks *and* inline code spans before scanning for links.
+
+**Why not the alternative.** Rewriting the notes to avoid the syntax was tried first and made things worse: it produced double-backticked `` ``wikilinks`` `` and damaged documentation that was correct to begin with. The tool was wrong, not the notes.
+
+**Consequences.** Documentation can freely show wikilink syntax in code spans without tripping the validator. A genuinely broken link still fails, because it will not be inside code.
+
+---
+
 ## 2026-08-18 — The boot config lives in `AGENTS.md`, not `CLAUDE.md`
 
 **Context.** The upstream ai-memory-vault project puts the entire boot config in `CLAUDE.md`, because Claude Code auto-loads that file. But this workspace runs Claude Code, Antigravity, and Codex interchangeably, and the other two do not read `CLAUDE.md`.

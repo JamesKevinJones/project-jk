@@ -128,9 +128,10 @@ if (-not (Test-Path -LiteralPath $monthFolder)) {
 
 # Copy starter notes only where nothing is there yet. Never clobber a real note.
 $seeds = @{
-    'templates\VAULT-INDEX.md' = 'VAULT-INDEX.md'
-    'templates\DAILY-NOTE.md'  = '01 - Daily Notes\Daily Note Template.md'
-    'templates\JOB.md'         = '18 - Resources\Jobs\_Job Template.md'
+    'templates\VAULT-INDEX.md'      = 'VAULT-INDEX.md'
+    'templates\ACTIVE-PRIORITIES.md' = 'Active Priorities.md'
+    'templates\DAILY-NOTE.md'       = '01 - Daily Notes\Daily Note Template.md'
+    'templates\JOB.md'              = '18 - Resources\Jobs\_Job Template.md'
 }
 foreach ($src in $seeds.Keys) {
     $from = Join-Path $RepoRoot $src
