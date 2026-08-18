@@ -17,7 +17,17 @@ The pre-existing Zettelkasten layer in that vault was left completely untouched:
 
 ## The exact next step
 
-Open a new terminal in this folder and run `claude`. Confirm the first reply is the welcome line ("All systems online, sir. What are we working on today?") and that it has read the vault, not just this file. Ask it "what is open right now?" and check the answer matches `Active Priorities.md` rather than being invented. If it answers without having read the vault, the startup sequence is not firing and that is the bug to chase.
+**Boot the agent and confirm the startup sequence fires. This is the one thing not yet verified.**
+
+Double-click `Chat with J.K..bat` on the Desktop, or open a terminal here and run `claude`. Then check three things:
+
+1. The first reply is the welcome line: "All systems online, sir. What are we working on today?"
+2. Ask `what is open right now?` The answer must match `Active Priorities.md` in the vault, not be invented.
+3. Ask `what job would you use to log today's NMS session?` It must name `Log a Wipro NMS Session` and be able to state that Job's boot chain.
+
+If 2 or 3 come back plausible but wrong, the startup sequence is not firing and the agent is behaving like a normal chatbot. That is the only failure mode that matters here and it is invisible unless you check.
+
+A headless verification (`claude -p ...`) was attempted during the build and failed with `Failed to authenticate: OAuth session expired and could not be refreshed`. That is an auth limitation of the non-interactive build session, not a defect in the config. Everything else in `docs/VERIFY.md` passed.
 
 ## Open questions
 
