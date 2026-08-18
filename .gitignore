@@ -1,0 +1,30 @@
+# The vault is the memory and it is private. Never commit it, or any copy of it.
+# These are root-anchored with a leading slash on purpose: unanchored, "VAULT-INDEX.md"
+# matches at every depth and silently swallows templates/VAULT-INDEX.md, which is a
+# sanitized file that belongs in the repo.
+/vault/
+*.vault
+/VAULT-INDEX.md
+/Active Priorities.md
+/01 - Daily Notes/
+/1? - */
+
+# Personal boot config is committed intentionally (identity + rules, no secrets),
+# but never commit anything that resolves a secret.
+.env
+.env.*
+*.key
+*.pem
+secrets.*
+
+# OS / editor
+Thumbs.db
+desktop.ini
+.DS_Store
+.obsidian/
+.vscode/
+.idea/
+
+# Launcher generated locally, points at a machine-specific path
+Chat with *.bat
+Chat with *.command
