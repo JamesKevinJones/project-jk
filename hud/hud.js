@@ -516,9 +516,15 @@ function renderFaults(v) {
 
 const match = (t) => !filter || t.toLowerCase().includes(filter);
 
+// head entries are [label, cls, explain?, explainTitle?]. Column names in a
+// dense table are the densest jargon on the page, so they carry the tooltips.
 function table(head) {
   const t = el('table', 'tbl'), thead = el('thead'), tr = el('tr');
-  head.forEach(([label, cls]) => tr.appendChild(el('th', cls, label)));
+  head.forEach(([label, cls, explain, title]) => {
+    const th = el('th', cls, label);
+    if (explain) Explain.tag(th, explain, title || label);
+    tr.appendChild(th);
+  });
   thead.appendChild(tr); t.appendChild(thead);
   const tb = el('tbody'); t.appendChild(tb);
   return { table: t, body: tb };
@@ -567,7 +573,12 @@ function renderJobs() {
                            : empty('No jobs', 'Add one when you explain the same task twice.'));
     return;
   }
-  const { table: t, body } = table([['job', ''], ['chain', 'r'], ['notes', 'r'], ['steps', 'r']]);
+  const { table: t, body } = table([
+    ['job', ''],
+    ['chain', 'r', 'How many items the job tells the agent to read, in order, before starting. A tight chain is the point; one that has crept past six items is doing too much.', 'Boot chain'],
+    ['notes', 'r', 'How many of those chain items are actual vault notes, so how many dots light up in the graph. The rest are files outside the vault, like a repo AGENTS.md.', 'Vault notes'],
+    ['steps', 'r', 'Numbered steps in the job procedure. This is the recipe the agent follows once it has read the chain.', 'Steps'],
+  ]);
   list.forEach((j) => {
     const tr = el('tr', 'click');
     tr.tabIndex = 0;
@@ -627,7 +638,12 @@ function renderProjects() {
   const list = STATE.projects.filter((p) => match(p.name + ' ' + p.slug));
   $('projMeta').textContent = STATE.projects.length;
   if (!list.length) { box.appendChild(empty('No match', 'No project matches "' + filter + '".')); return; }
-  const { table: t, body } = table([['project', ''], ['slug', ''], ['notes', 'r'], ['index', 'r']]);
+  const { table: t, body } = table([
+    ['project', ''],
+    ['slug', '', 'The short id written into each note\'s frontmatter to bind it to this project. It is how the agent knows a note belongs here even if the file moves.', 'Slug'],
+    ['notes', 'r'],
+    ['index', 'r', 'Whether the folder has its map note, the file that lists what is inside. Without one, a future session has no reason to look in the folder at all.', 'Folder index'],
+  ]);
   list.forEach((p) => {
     const tr = el('tr', 'click');
     tr.tabIndex = 0;
@@ -740,7 +756,76 @@ function showProject(p) {
   });
 }
 
-/* ═══════════════════════ events ═══════════════════════════════ */
+/* ═══════════════════════ explain system ═══════════════════════
+   One delegated listener for every [data-explain] element, present or added
+   later by a render. Opens on hover and on keyboard focus, so it is not a
+   mouse-only affordance, and wires aria-describedby while open so a screen
+   reader gets the same text. */
+
+const Explain = (() => {
+  const box = $('explain');
+  let openOn = null;
+  let seq = 0;
+
+  function show(node) {
+    const text = node.getAttribute('data-explain');
+    if (!text) return;
+    box.innerHTML = '';
+    box.appendChild(el('b', null, node.getAttribute('data-explain-title') || 'What this is'));
+    box.append(text);
+    box.hidden = false;
+
+    if (!box.id) box.id = 'explain';
+    node.setAttribute('aria-describedby', box.id);
+    openOn = node;
+
+    const r = node.getBoundingClientRect();
+    const b = box.getBoundingClientRect();
+    // prefer below, flip above when it would run off the bottom
+    let top = r.bottom + 8;
+    if (top + b.height > innerHeight - 8) top = r.top - b.height - 8;
+    let left = r.left;
+    // Clamp both axes to the viewport last, unconditionally. The flip alone is
+    // not enough: an anchor that is itself off-screen would otherwise place the
+    // popover off-screen too, which is reachable via keyboard focus.
+    top = Math.min(Math.max(8, top), Math.max(8, innerHeight - b.height - 8));
+    left = Math.min(Math.max(8, left), Math.max(8, innerWidth - b.width - 8));
+    box.style.left = Math.round(left) + 'px';
+    box.style.top = Math.round(top) + 'px';
+  }
+
+  function hide() {
+    box.hidden = true;
+    if (openOn) { openOn.removeAttribute('aria-describedby'); openOn = null; }
+  }
+
+  document.addEventListener('mouseover', (e) => {
+    const n = e.target.closest('[data-explain]');
+    if (n) show(n); else if (openOn) hide();
+  });
+  document.addEventListener('focusin', (e) => {
+    const n = e.target.closest('[data-explain]');
+    if (n) show(n); else if (openOn) hide();
+  });
+  document.addEventListener('focusout', hide);
+  addEventListener('scroll', () => { if (openOn) hide(); }, { passive: true });
+
+  return {
+    hide,
+    /* Make an element explainable and keyboard reachable. Used by the render
+       functions, since those nodes do not exist in the HTML. */
+    tag(node, text, title) {
+      if (!node || !text) return node;
+      node.setAttribute('data-explain', text);
+      if (title) node.setAttribute('data-explain-title', title);
+      if (!node.hasAttribute('tabindex') && !/^(A|BUTTON|INPUT|SELECT|TEXTAREA)$/.test(node.tagName)) {
+        node.tabIndex = 0;
+      }
+      node.id = node.id || ('ex-' + (++seq));
+      return node;
+    },
+  };
+})();
 
 setInterval(() => {
   $('clock').textContent = new Date().toLocaleTimeString('en-GB', { hour12: false });

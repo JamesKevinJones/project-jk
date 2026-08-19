@@ -8,6 +8,18 @@ deliberately. If a choice would look wrong without context, it belongs here.
 
 ---
 
+## 2026-08-19 — Full-bleed chrome spans the grid; anything non-obvious explains itself
+
+**Context.** At the scroll position where the console meets the end of the story, the sticky stage was only partly visible. Because the stage is one half of a two-column grid and carried a 3px right border, its edges terminated at the halfway point and the remnant read as a broken, asymmetrical box around the caption text.
+
+**Decision.** The caption and counter moved out of the stage overlay into a status bar that spans `grid-column: 1 / -1`, so its rules run the full viewport width. The stage now offsets from a shared `--status-h` token and `.story` carries a bottom border that closes the section edge to edge. Separately, every non-obvious control gained a `data-explain` tooltip that opens on hover and on keyboard focus.
+
+**Why not the alternative.** Hiding the stage remnant, or dropping its border, would have removed the symptom while leaving free-floating chrome inside a column that can always be partly scrolled away. Spanning the grid is what actually makes the geometry correct at any scroll offset and any width.
+
+**Consequences.** Bar height is a single token; changing it anywhere else makes the sticky stage overlap. The explainer is delegated from `document`, so nodes rendered later are covered without re-binding, and it wires `aria-describedby` while open rather than being a mouse-only affordance.
+
+---
+
 ## 2026-08-19 — The named typefaces are referenced, not redistributed
 
 **Context.** The brief named PUSAB for display and Luminari for prose. Neither is on Google Fonts, neither was installed on this machine, and neither is redistributable: Luminari is proprietary to Apple and ships with macOS, PUSAB is licensed free for personal use only.

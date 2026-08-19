@@ -36,10 +36,25 @@
 
 <!-- ═══ ACT 1–3 — THE SCROLL STORY ══════════════════════════════ -->
 <section class="story" id="story">
+  <!-- Full-width status rail. It spans both grid columns so its rules run edge
+       to edge; previously this text sat inside the half-width stage, so when
+       the sticky stage was partly scrolled away its borders terminated
+       mid-screen and read as a broken box. -->
+  <div class="story-status">
+    <div class="status-readout"
+         data-explain="Live counter for the current step of the story. The number is read from your actual vault, not a placeholder.">
+      <b id="stageCount">0</b>
+      <span id="stageCountLabel"></span>
+    </div>
+    <p class="status-line" id="stageCaption"></p>
+    <span class="status-tail"
+          data-explain="The graph beside this is your real note graph: one dot per note, one line per resolved wikilink. Hover a dot to inspect it, click to open it.">
+      vault graph · live
+    </span>
+  </div>
+
   <div class="story-stage">
     <canvas id="constellation"></canvas>
-    <p class="stage-caption" id="stageCaption"></p>
-    <div class="stage-count"><b id="stageCount"></b><span id="stageCountLabel"></span></div>
   </div>
 
   <div class="story-rail">
@@ -103,46 +118,64 @@
   <div class="grid" id="grid" aria-busy="true">
 
     <section class="card card-status">
-      <h3 class="card-head">Memory status</h3>
+      <h3 class="card-head" tabindex="0"
+          data-explain-title="Memory status"
+          data-explain="The result of running the vault validator just now. NOMINAL means every wikilink resolves, every folder has its index, and every Job is registered. FAULT means the agent would hit a dead end mid-task.">Memory status</h3>
       <div class="status-body">
         <p class="verdict" id="verdict">CHECKING</p>
         <p class="verdict-sub" id="verdictSub">reading vault</p>
         <dl class="figs">
-          <div><dt>notes</dt><dd id="f-notes">—</dd></div>
-          <div><dt>links</dt><dd id="f-links">—</dd></div>
-          <div><dt>words</dt><dd id="f-words">—</dd></div>
-          <div><dt>checks</dt><dd id="f-checks">—</dd></div>
+          <div><dt tabindex="0" data-explain-title="Notes"
+               data-explain="Every markdown file in the vault, including the pre-existing Zettelkasten. This is the agent's whole memory.">notes</dt><dd id="f-notes">—</dd></div>
+          <div><dt tabindex="0" data-explain-title="Links"
+               data-explain="Total [[wikilinks]] written across all notes. These are what the agent walks to get from one note to a related one, instead of searching blindly.">links</dt><dd id="f-links">—</dd></div>
+          <div><dt tabindex="0" data-explain-title="Words"
+               data-explain="Total words held in the vault. Useful as a sense of scale: this is memory that would never fit in a context window, which is the whole reason it lives on disk.">words</dt><dd id="f-words">—</dd></div>
+          <div><dt tabindex="0" data-explain-title="Checks"
+               data-explain="How many separate structural checks the validator ran. More checks appear as the vault grows more folders and Jobs.">checks</dt><dd id="f-checks">—</dd></div>
         </dl>
       </div>
     </section>
 
     <section class="card card-faults">
-      <h3 class="card-head">Faults <b id="faultMeta"></b></h3>
+      <h3 class="card-head" tabindex="0"
+          data-explain-title="Faults and advisories"
+          data-explain="FAULT is structural breakage: a link pointing at nothing, a folder with no index. ADVISORY is a nudge, like having no Jobs written yet. The two numbers are faults / advisories.">Faults <b id="faultMeta"></b></h3>
       <div class="card-body scroll" id="faults"></div>
     </section>
 
     <section class="card card-open">
-      <h3 class="card-head">Open work <b id="prMeta"></b></h3>
+      <h3 class="card-head" tabindex="0"
+          data-explain-title="Open work"
+          data-explain="Read straight from Active Priorities.md in the vault. This is the single queue the agent checks at the start of every session, so anything not here is invisible to it.">Open work <b id="prMeta"></b></h3>
       <div class="card-body scroll" id="priorities"></div>
     </section>
 
     <section class="card card-jobs">
-      <h3 class="card-head">Jobs <b id="jobMeta"></b></h3>
+      <h3 class="card-head" tabindex="0"
+          data-explain-title="Jobs"
+          data-explain="One note per recurring task. Each names the few notes that task needs, so the agent reads one file and has the whole skill instead of loading the vault. Click a row for the full note.">Jobs <b id="jobMeta"></b></h3>
       <div class="card-body scroll" id="jobs"></div>
     </section>
 
     <section class="card card-dist">
-      <h3 class="card-head">Notes per folder</h3>
+      <h3 class="card-head" tabindex="0"
+          data-explain-title="Notes per folder"
+          data-explain="Where the memory actually sits. The purple bar is the Zettelkasten that predates this system and was deliberately left untouched, which is why it dwarfs the rest.">Notes per folder</h3>
       <div class="card-body scroll" id="dist"></div>
     </section>
 
     <section class="card card-log">
-      <h3 class="card-head">Daily log <b id="dailyMeta"></b></h3>
+      <h3 class="card-head" tabindex="0"
+          data-explain-title="Daily log"
+          data-explain="You never write these. Tell the agent you are done and it logs the day; forget, and the next session backfills what it knows. Multiple tools feed the same file.">Daily log <b id="dailyMeta"></b></h3>
       <div class="card-body scroll" id="daily"></div>
     </section>
 
     <section class="card card-proj">
-      <h3 class="card-head">Projects <b id="projMeta"></b></h3>
+      <h3 class="card-head" tabindex="0"
+          data-explain-title="Projects"
+          data-explain="One folder per project. SLUG is the tag used in note frontmatter to bind a note to its project. INDEX shows whether the folder has its map note, without which future sessions will not look inside it.">Projects <b id="projMeta"></b></h3>
       <div class="card-body scroll" id="projects"></div>
     </section>
   </div>
@@ -155,6 +188,9 @@
 
 <!-- node inspector -->
 <div class="tip" id="tip" hidden></div>
+
+<!-- shared explainer popover, driven by any [data-explain] element -->
+<div id="explain" role="tooltip" hidden></div>
 
 <div class="sheet" id="detail" hidden>
   <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
