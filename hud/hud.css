@@ -99,7 +99,7 @@ h1, h2, h3 {
   padding: var(--s6) var(--s4);
   border-bottom: 3px solid var(--line);
 }
-.hero-inner { width: min(1100px, 100%); }
+.hero-inner { width: min(1320px, 100%); }
 
 .eyebrow {
   margin: 0 0 var(--s4);
@@ -110,9 +110,12 @@ h1, h2, h3 {
   box-shadow: var(--brut-sm);
 }
 
-/* PUSAB and its fallbacks are chunkier and wider than a grotesk, so the
-   negative tracking that suits Archivo would collide the counters here. */
-.mega { margin: 0; font-size: clamp(44px, 10.5vw, 140px); letter-spacing: 0; }
+/* PUSAB is far wider than the OFL fallback: the same string measures 1617px in
+   PUSAB against 909px in Lilita One. The scale is tuned so the longer title
+   line still fits on one line in the WIDER face, which means it also fits in
+   the narrower one. Tracking stays at 0, since the negative tracking that suits
+   a grotesk collides these counters. */
+.mega { margin: 0; font-size: clamp(40px, 8.6vw, 118px); letter-spacing: 0; }
 .mega-line {
   display: block; line-height: 0.98;
   /* the one gradient on the page, confined to the title, with the hard

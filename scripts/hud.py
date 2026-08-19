@@ -48,9 +48,19 @@ STATIC = {
 # (fonts are fetched, GSAP is vendored) and listing them by hand would go stale.
 # Each request is still resolved and confirmed to sit inside hud/, and only
 # these extensions are allowed, so this is not a directory handler.
-ASSET_DIRS = {"/fonts/": HUD_DIR / "fonts", "/vendor/": HUD_DIR / "vendor"}
+# fonts-local/ holds fonts that may be used but not redistributed, so it is
+# gitignored and simply absent on a fresh clone (the stylesheet 404s and the CSS
+# stack falls through to the vendored fallback).
+ASSET_DIRS = {
+    "/fonts/": HUD_DIR / "fonts",
+    "/fonts-local/": HUD_DIR / "fonts-local",
+    "/vendor/": HUD_DIR / "vendor",
+}
 ASSET_TYPES = {
     ".woff2": "font/woff2",
+    ".woff": "font/woff",
+    ".ttf": "font/ttf",
+    ".otf": "font/otf",
     ".css": "text/css; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
 }

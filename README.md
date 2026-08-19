@@ -121,12 +121,14 @@ project-jk/
 │   ├── hud.css                  neo-brutalist, after StarMatch
 │   ├── hud.js                   vanilla + GSAP ScrollTrigger
 │   ├── fonts/                   Lilita One, Grenze, IBM Plex Mono (OFL, local)
+│   ├── fonts-local/             gitignored: licensed faces you may not redistribute
 │   └── vendor/                  GSAP + ScrollTrigger, vendored not CDN
 ├── scripts/
 │   ├── setup.ps1                wires a vault, seeds notes, drops launchers
 │   ├── validate.py              walks the vault the way the agent does at boot
 │   ├── hud.py                   stdlib server, reads the vault, serves the console
-│   └── fetch-fonts.py           downloads Google Fonts locally, one command to swap
+│   ├── fetch-fonts.py           downloads Google Fonts locally, one command to swap
+│   └── add-local-font.py        serves a non-redistributable font without committing it
 └── templates/
     ├── BOOT-CONFIG.md           AGENTS.md with personal content stripped
     ├── VAULT-INDEX.md           the operating manual, blank
@@ -303,7 +305,9 @@ Colour is load-bearing. Mint, acid, and coral mean nominal, advisory, and fault,
 
 Type is **PUSAB** for display and **Luminari** for prose, with **IBM Plex Mono** for data.
 
-Neither of the first two is redistributable, so neither is committed here. Luminari is proprietary to Apple and ships with macOS; PUSAB is free for personal use only. Both are named first in the CSS stack, so any machine that has them installed uses them with no code change. What is vendored is the closest open-licensed match, which is what renders everywhere else:
+Neither of the first two is committed here. Luminari is proprietary to Apple and ships with macOS. PUSAB is freeware from Bagel & Co. that its readme permits on commercial and non-commercial work, but it grants no explicit right to redistribute the file, so it stays out of the repo.
+
+Both are named first in the CSS stack, so any machine that has them uses them with no code change. What is vendored is the closest open-licensed match, which is what renders everywhere else:
 
 | Intended | Vendored fallback | Licence |
 |---|---|---|
@@ -311,11 +315,19 @@ Neither of the first two is redistributable, so neither is committed here. Lumin
 | Luminari | Grenze | SIL OFL 1.1 |
 | IBM Plex Mono | IBM Plex Mono | SIL OFL 1.1 |
 
-Swapping any of them is one command:
+Swapping any of the vendored faces is one command:
 
 ```bash
 python scripts/fetch-fonts.py "Lilita One" "Grenze:wght@400;600" "IBM Plex Mono:wght@400;600"
 ```
+
+**To render a font you hold a licence for but cannot redistribute**, drop it into `hud/fonts-local/`, which is gitignored:
+
+```bash
+python scripts/add-local-font.py "C:\path	o\PUSAB___.TTF"
+```
+
+The script reads the family name out of the font's own `name` table, writes the `@font-face`, and the console serves it over localhost. This works even when the font is installed system-wide but the browser cannot see it, because browsers enumerate system fonts once at process start. On a fresh clone the folder is absent, that stylesheet 404s harmlessly, and the stack falls through to the vendored fallback.
 
 GSAP is vendored into `hud/vendor/` rather than loaded from a CDN, for the same reason.
 
@@ -494,7 +506,7 @@ Both are redistributed inside this repository so the page makes no external requ
 - **GSAP 3.15.0** and **ScrollTrigger**, in `hud/vendor/`. Copyright (c) 2008-2026 GreenSock, used under their standard "no charge" license: https://gsap.com/standard-license
 - **Lilita One**, **Grenze**, and **IBM Plex Mono**, in `hud/fonts/`, all under the SIL Open Font License 1.1. Re-fetch or swap them with `scripts/fetch-fonts.py`.
 
-PUSAB and Luminari are referenced by name in the CSS stack but deliberately **not** included, because their licences do not permit redistribution.
+PUSAB and Luminari are referenced by name in the CSS stack but deliberately **not** included. Luminari is proprietary; PUSAB is freeware for use but carries no explicit redistribution grant. Use `scripts/add-local-font.py` to render either on your own machine.
 
 ## License
 

@@ -8,6 +8,20 @@ deliberately. If a choice would look wrong without context, it belongs here.
 
 ---
 
+## 2026-08-19 — Non-redistributable fonts are served from a gitignored folder
+
+**Supersedes part of "The named typefaces are referenced, not redistributed".** That entry described PUSAB as free for personal use only. Reading the licence that ships in the archive, it is freeware from Bagel & Co. that explicitly permits commercial and non-commercial use. It still grants no explicit right to redistribute the file, so keeping it out of the repo stands, but the reason is narrower than first recorded.
+
+**Context.** PUSAB was installed into Windows per-user and became enumerable to GDI+ immediately, and Chrome still would not render it: browsers enumerate system fonts once at process start, and `WM_FONTCHANGE` does not reliably refresh that cache. Telling the user to restart their browser is a poor answer and would not help anyone else.
+
+**Decision.** `hud/fonts-local/` is gitignored and served over localhost. `scripts/add-local-font.py` copies a font in, reads the family name out of the font's own `name` table, and generates the `@font-face`. The stylesheet is linked after the vendored one so it wins.
+
+**Why not the alternative.** Relying on the system install means the page renders differently depending on browser start time, which is not something to hand to anyone. Committing the file would have been simplest and is the thing the licence does not clearly allow.
+
+**Consequences.** On a fresh clone the folder is absent, the stylesheet 404s harmlessly, and the stack falls through to Lilita One. The display scale had to be retuned: the same string measures 1617px in PUSAB against 909px in Lilita One, so the title is sized to fit in the wider face, which means it also fits in the narrower one.
+
+---
+
 ## 2026-08-19 — Full-bleed chrome spans the grid; anything non-obvious explains itself
 
 **Context.** At the scroll position where the console meets the end of the story, the sticky stage was only partly visible. Because the stage is one half of a two-column grid and carried a 3px right border, its edges terminated at the halfway point and the remnant read as a broken, asymmetrical box around the caption text.

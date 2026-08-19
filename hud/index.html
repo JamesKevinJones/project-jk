@@ -6,6 +6,10 @@
 <title>J.K. Console</title>
 <link rel="preload" as="style" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/fonts/fonts.css">
+<!-- Locally licensed faces, gitignored and absent on a fresh clone. Loading
+     after fonts.css lets them win; if the file is missing this 404s harmlessly
+     and the CSS stack falls through to the vendored open-licensed fallback. -->
+<link rel="stylesheet" href="/fonts-local/local.css">
 <link rel="stylesheet" href="/hud.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23f4f1ea'/><rect x='3' y='3' width='26' height='26' fill='none' stroke='%230b0b0b' stroke-width='3'/><circle cx='11' cy='12' r='3' fill='%234d5bff'/><circle cx='21' cy='20' r='3' fill='%23ff5c4d'/><path d='M11 12 L21 20' stroke='%230b0b0b' stroke-width='2'/></svg>">
 </head>
