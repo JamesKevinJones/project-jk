@@ -8,6 +8,30 @@ deliberately. If a choice would look wrong without context, it belongs here.
 
 ---
 
+## 2026-08-19 — The HUD's hero is the vault's real link graph, not an arc reactor
+
+**Context.** The first HUD centred on a rotating arc reactor: cyan on blue-black, concentric rings, scanlines, corner brackets. It looked the part and meant nothing. It would have sat unchanged on any other project, which is the definition of a default rather than a choice.
+
+**Decision.** Replace it with a force-directed graph of the actual vault, 108 notes and 269 resolved wikilinks. Selecting a Job dims the vault and lights only the notes that Job loads.
+
+**Why not the alternative.** Keeping the reactor was free and already built. But the system's whole claim is "it loads four notes, not the vault," and that claim was only ever asserted in a table. The graph turns it into something you watch happen, and it doubles as a diagnostic: a boot chain that has quietly grown too broad is obvious the moment you select it.
+
+**Consequences.** The canvas is `aria-hidden` and never the sole representation of anything, because a force graph is close to unusable for a screen reader; every fact it draws is also text in the panels. Unresolved wikilinks are deliberately not drawn, since an edge would claim a connection that does not exist.
+
+---
+
+## 2026-08-19 — Amber carries the interface; cyan is spent once
+
+**Context.** Near-black plus a single bright accent is one of the three looks AI-generated design reliably converges on, and cyan-on-blue-black is the sci-fi variant of it. The brief asked for an Iron Man HUD, which pins the darkness but not the hue.
+
+**Decision.** A warm near-black ground (`#0A0906`, brown-black), amber `#E8A33D` as the instrument colour, hot-rod red for alerts, and cyan `#3FC7D4` used in exactly one place: the live core and the notes a selected Job lights. Display type is Bahnschrift (DIN lineage), data type is Cascadia Mono.
+
+**Why not the alternative.** The generated design-system recommendation was Inter on slate with a green accent, which is the stock developer-dashboard answer and would have made this look like every other tool. Iron Man's suit is gold and red; only the reactor is blue, so amber-dominant is both less generic and more faithful to the reference.
+
+**Consequences.** Both typefaces ship with Windows, so there is no font request and no dependency. On a machine without them the stack falls back through DIN Alternate and Oswald to a narrow system sans, which changes the texture but not the layout.
+
+---
+
 ## 2026-08-19 — The HUD is a local server with a path whitelist, not a static page
 
 **Context.** The vault is markdown, which is right for the agent and hard for a person to see at a glance. A dashboard needs to read files the browser cannot reach on its own.

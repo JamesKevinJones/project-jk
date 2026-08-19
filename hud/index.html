@@ -5,137 +5,104 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>J.K. HUD</title>
 <link rel="stylesheet" href="/hud.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='13' fill='none' stroke='%234dd8e8' stroke-width='2'/><circle cx='16' cy='16' r='5' fill='%234dd8e8'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='4' fill='%23E8A33D'/><circle cx='6' cy='9' r='2' fill='%23E8A33D' opacity='.7'/><circle cx='26' cy='11' r='2' fill='%23E8A33D' opacity='.7'/><circle cx='9' cy='25' r='2' fill='%23E8A33D' opacity='.7'/><circle cx='25' cy='24' r='2' fill='%233FC7D4'/></svg>">
 </head>
-<body>
+<body data-state="boot">
 
-<div class="scanlines" aria-hidden="true"></div>
-<div class="vignette" aria-hidden="true"></div>
+<!-- the vault's link graph, drawn behind everything -->
+<canvas id="constellation" aria-hidden="true"></canvas>
+<div class="grain" aria-hidden="true"></div>
 
-<header class="topbar">
-  <div class="brand">
-    <span class="brand-mark" aria-hidden="true"></span>
-    <span class="brand-name" id="agentName">J.K.</span>
-    <span class="brand-sub">MEMORY VAULT / HUD</span>
+<header class="rail">
+  <div class="ident">
+    <span class="ident-name" id="agentName">J.K.</span>
+    <span class="ident-role">memory vault</span>
   </div>
-  <div class="topbar-mid">
-    <label class="search" for="search">
-      <span class="search-icon" aria-hidden="true"></span>
-      <input id="search" type="search" placeholder="Filter priorities, projects, jobs" autocomplete="off" spellcheck="false">
+
+  <div class="readout" id="readout">
+    <span class="readout-lamp" id="lamp" aria-hidden="true"></span>
+    <span class="readout-text" id="statusText">initialising</span>
+    <span class="readout-sub" id="statusSub">reading vault</span>
+  </div>
+
+  <div class="rail-right">
+    <label class="find" for="search">
+      <input id="search" type="search" placeholder="filter" autocomplete="off" spellcheck="false" aria-label="Filter priorities, projects and jobs">
       <kbd>/</kbd>
     </label>
-  </div>
-  <div class="topbar-right">
-    <span class="clock" id="clock" aria-live="off">--:--:--</span>
-    <button class="btn" id="refresh" type="button">
-      <span class="btn-dot" aria-hidden="true"></span> Refresh
-    </button>
+    <span class="clock" id="clock">--:--:--</span>
+    <button class="ghost" id="refresh" type="button">Refresh</button>
   </div>
 </header>
 
-<main class="grid" id="grid" aria-busy="true">
+<main class="stage" id="stage" aria-busy="true">
 
-  <!-- ---------- LEFT ---------- -->
-  <section class="col col-left">
-
-    <article class="panel" id="panel-systems" style="--i:0">
-      <h2 class="panel-title">Systems<span class="rule"></span><span class="panel-meta" id="sysMeta"></span></h2>
-      <div class="panel-body" id="systems">
-        <div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div>
+  <div class="flank flank-l">
+    <section class="bezel" style="--i:0">
+      <h2 class="bezel-title">Systems <b id="sysMeta"></b></h2>
+      <div id="systems" class="pad">
+        <div class="ghost-row"></div><div class="ghost-row"></div><div class="ghost-row"></div>
       </div>
-    </article>
+    </section>
 
-    <article class="panel" id="panel-stats" style="--i:1">
-      <h2 class="panel-title">Memory<span class="rule"></span></h2>
-      <div class="panel-body">
-        <dl class="stats" id="stats">
-          <div class="stat"><dt>Notes</dt><dd class="num" id="s-notes">-</dd></div>
-          <div class="stat"><dt>Words</dt><dd class="num" id="s-words">-</dd></div>
-          <div class="stat"><dt>Links</dt><dd class="num" id="s-links">-</dd></div>
-          <div class="stat"><dt>Folders</dt><dd class="num" id="s-folders">-</dd></div>
+    <section class="bezel" style="--i:1">
+      <h2 class="bezel-title">Memory</h2>
+      <div class="pad">
+        <dl class="gauges">
+          <div><dt>notes</dt><dd id="g-notes">-</dd></div>
+          <div><dt>links</dt><dd id="g-links">-</dd></div>
+          <div><dt>words</dt><dd id="g-words">-</dd></div>
         </dl>
-        <p class="vault-path" id="vaultPath"></p>
+        <p class="path" id="vaultPath"></p>
       </div>
-    </article>
+    </section>
 
-    <article class="panel grow" id="panel-daily" style="--i:2">
-      <h2 class="panel-title">Daily log<span class="rule"></span><span class="panel-meta" id="dailyMeta"></span></h2>
-      <div class="panel-body scroll" id="daily"></div>
-    </article>
+    <section class="bezel flex" style="--i:2">
+      <h2 class="bezel-title">Daily log <b id="dailyMeta"></b></h2>
+      <div id="daily" class="pad scroll"></div>
+    </section>
+  </div>
 
-  </section>
+  <!-- centre stays clear: the constellation is the hero -->
+  <div class="core" id="core">
+    <p class="core-count" id="coreCount"></p>
+    <p class="core-label" id="coreLabel"></p>
+    <button class="core-reset" id="coreReset" type="button" hidden>Show whole vault</button>
+  </div>
 
-  <!-- ---------- CENTRE ---------- -->
-  <section class="col col-mid">
-
-    <div class="reactor-wrap">
-      <svg class="reactor" viewBox="0 0 240 240" role="img" aria-labelledby="reactorTitle">
-        <title id="reactorTitle">Agent status indicator</title>
-        <g class="r-static">
-          <circle cx="120" cy="120" r="112" class="ring-hair"/>
-          <circle cx="120" cy="120" r="96" class="ring-hair"/>
-        </g>
-        <g class="r-spin-slow">
-          <circle cx="120" cy="120" r="104" class="ring-dash"/>
-        </g>
-        <g class="r-spin-rev">
-          <circle cx="120" cy="120" r="86" class="ring-dash-2"/>
-        </g>
-        <g class="r-spin-slow">
-          <g class="ticks" id="ticks"></g>
-        </g>
-        <circle cx="120" cy="120" r="62" class="ring-core-outer"/>
-        <circle cx="120" cy="120" r="46" class="ring-core"/>
-        <circle cx="120" cy="120" r="30" class="core-glow"/>
-        <circle cx="120" cy="120" r="18" class="core"/>
-        <g class="brackets" aria-hidden="true">
-          <path d="M18 74 L18 32 L60 32"/><path d="M222 74 L222 32 L180 32"/>
-          <path d="M18 166 L18 208 L60 208"/><path d="M222 166 L222 208 L180 208"/>
-        </g>
-      </svg>
-      <div class="reactor-readout">
-        <p class="status" id="status">INITIALISING</p>
-        <p class="status-sub" id="statusSub">reading vault</p>
+  <div class="flank flank-r">
+    <section class="bezel flex" style="--i:3">
+      <h2 class="bezel-title">Open <b id="prMeta"></b></h2>
+      <div id="priorities" class="pad scroll">
+        <div class="ghost-row"></div><div class="ghost-row"></div>
       </div>
-    </div>
+    </section>
 
-    <article class="panel grow" id="panel-priorities" style="--i:3">
-      <h2 class="panel-title">Active priorities<span class="rule"></span><span class="panel-meta" id="prMeta"></span></h2>
-      <div class="panel-body scroll" id="priorities">
-        <div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div>
-      </div>
-    </article>
+    <section class="bezel" style="--i:4">
+      <h2 class="bezel-title">Projects <b id="projMeta"></b></h2>
+      <div id="projects" class="pad scroll short"></div>
+    </section>
 
-  </section>
-
-  <!-- ---------- RIGHT ---------- -->
-  <section class="col col-right">
-
-    <article class="panel" id="panel-projects" style="--i:4">
-      <h2 class="panel-title">Projects<span class="rule"></span><span class="panel-meta" id="projMeta"></span></h2>
-      <div class="panel-body scroll" id="projects"></div>
-    </article>
-
-    <article class="panel grow" id="panel-jobs" style="--i:5">
-      <h2 class="panel-title">Jobs<span class="rule"></span><span class="panel-meta" id="jobMeta"></span></h2>
-      <p class="panel-note">One note per recurring task. Select one to see what it loads.</p>
-      <div class="panel-body scroll" id="jobs"></div>
-    </article>
-
-  </section>
+    <section class="bezel flex" style="--i:5">
+      <h2 class="bezel-title">Jobs <b id="jobMeta"></b></h2>
+      <p class="hint">Select one to see what it loads, and nothing else.</p>
+      <div id="jobs" class="pad scroll"></div>
+    </section>
+  </div>
 </main>
 
-<!-- ---------- DETAIL ---------- -->
-<div class="detail" id="detail" hidden>
-  <div class="detail-card" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
-    <button class="detail-close" id="detailClose" type="button" aria-label="Close">ESC</button>
-    <p class="detail-kicker" id="detailKicker"></p>
+<div class="tip" id="tip" hidden></div>
+
+<div class="sheet" id="detail" hidden>
+  <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+    <button class="sheet-close" id="detailClose" type="button">Close <kbd>esc</kbd></button>
+    <p class="sheet-kicker" id="detailKicker"></p>
     <h3 id="detailTitle"></h3>
     <div id="detailBody"></div>
   </div>
 </div>
 
-<p class="footer" id="footer"></p>
+<p class="footline" id="footer"></p>
 
 <script src="/hud.js"></script>
 </body>

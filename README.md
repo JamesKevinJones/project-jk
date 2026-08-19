@@ -274,22 +274,32 @@ python scripts/hud.py
 
 It opens at `http://127.0.0.1:7842`. There is also a desktop shortcut, `<agent> HUD.bat`, if you would rather not remember the command.
 
+### The constellation
+
+The centrepiece is not decoration. It is the vault's actual link graph, drawn from the real data: every note is a node, every resolved wikilink is an edge, and node size follows how connected a note is. Unresolved links are not drawn, because drawing one would claim a connection that does not exist.
+
+**Select a Job and the vault goes dark except for what that Job loads.** That is the system's central claim, made visible instead of asserted. "Ship a Change to a Kevin Codes Project" lights 3 of 110 notes; the readout counts it for you. It is also the fastest way to see when a boot chain has quietly grown too broad to be useful.
+
+A pleasant surprise on first run: the most connected notes in the graph are from the Zettelkasten that predates this system. The old notes and the new memory layer render as one mind, which is the argument for layering rather than migrating.
+
 **What it shows**
 
 | Panel | Reads from |
 |---|---|
-| Systems | `validate.py`, run live. Green when the vault traverses clean, red with the specific faults when it does not. |
-| Memory | Note count, word count, wikilink count, folder count, and the vault path. |
+| Systems | `validate.py`, run live. Amber when the vault traverses clean, red with the specific faults when it does not. |
+| Memory | Note, wikilink, and word counts, plus the vault path. |
 | Daily log | The `## Index` block of each recent daily note, so you can scan a week in seconds. |
-| Active priorities | Open and completed items, with their project tags. |
-| Projects | One row per project folder, with note counts. Click one for its slug, index status, and open items. |
-| Jobs | One row per Job. Click one to see its boot chain, the exact notes it loads and nothing else. |
+| Open | Priorities with their project tags. |
+| Projects | One row per project folder. Click for its slug, index status, and open items. |
+| Jobs | One row per Job. Click to light its boot chain in the graph, double-click for the full note. |
 
-Type `/` to filter priorities, projects, and Jobs at once. `Esc` clears. It re-reads the vault every 30 seconds.
+Type `/` to filter Open, Projects, and Jobs at once. `Esc` clears the selection, then the filter. It re-reads the vault every 30 seconds.
 
-**How it is built.** Standard library Python, vanilla JavaScript, hand-written CSS. No framework, no bundler, no dependencies, no build step. The server binds to `127.0.0.1` and serves exactly three files by name rather than a directory, because the vault it reads is private and a directory handler would be a way to read anything on the machine.
+**How it is built.** Standard library Python, vanilla JavaScript, hand-written CSS. No framework, no bundler, no dependencies, no build step. The force simulation is about forty lines; at 108 nodes a quadtree would be complexity with nothing to show for it. The server binds to `127.0.0.1` and serves exactly four paths by name rather than a directory, because the vault it reads is private.
 
-The visual language is a deliberate commitment rather than a default: near-black with a blue cast (not `#000`), one cyan accent, hairline strokes, corner brackets, and a monospace stack that ships with Windows. The arc reactor is inline SVG with its tick marks generated in a loop; nothing is imported. Every text colour clears 4.5:1 contrast against the background, verified by measuring the composited values rather than eyeballing them, and `prefers-reduced-motion` stops the rotation and the translations while keeping opacity fades, because killing every animation makes an interface feel broken rather than calm.
+**The visual direction.** Iron Man's suit is gold and red, and only the reactor is blue, so amber carries the entire interface and cyan is spent once, on the live core. The ground is a warm near-black (`#0A0906`), not the blue-black that every dark dashboard defaults to. Type is Bahnschrift, a DIN descendant and therefore the vernacular of gauges, signage, and engineering drawings, paired with Cascadia Mono for data because the vault is text files and mono is honest about that. Both ship with Windows, so the page makes no network request for a font.
+
+**Accessibility.** A force-directed graph on a canvas is close to unusable for a screen reader, so the canvas is `aria-hidden` and never the only route to a fact: every node, count, and boot chain it draws is also readable as text in the panels beside it. Every text colour was measured against its composited background rather than eyeballed; the lowest is 5.57:1 against a 4.5:1 requirement. Status uses fill and shape, not hue alone. Tap targets reach 44px where a finger is the pointer, and `prefers-reduced-motion` settles the simulation instantly instead of animating it, while keeping opacity fades, because killing every animation makes an interface feel broken rather than calm.
 
 ## The vault rules
 

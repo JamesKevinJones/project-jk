@@ -143,8 +143,13 @@ def parse_jobs(vault: Path, folders: list[str]) -> list[dict]:
             jm = re.search(r"\*\*The job:\*\*\s*(.+)", text)
             summary = _plain(jm.group(1)) if jm else ""
             chain_block = re.search(r"## Boot chain.*?\n(.*?)(?=\n## )", text, re.S)
-            chain = []
+            chain, chain_notes = [], []
             if chain_block:
+                # Keep the raw wikilink targets as well as the readable prose:
+                # the HUD lights exactly these nodes in the graph, which is the
+                # claim "it loads four notes, not the vault" made visible.
+                chain_notes = [t.strip() for t in
+                               WIKILINK.findall(chain_block.group(1))]
                 for line in chain_block.group(1).splitlines():
                     s = re.sub(r"^\s*\d+\.\s*", "", line).strip()
                     if not s:
@@ -157,6 +162,7 @@ def parse_jobs(vault: Path, folders: list[str]) -> list[dict]:
                 "name": p.stem,
                 "job": summary,
                 "chain": chain,
+                "chainNotes": chain_notes,
                 "steps": steps,
                 "lessons": lessons,
             })
@@ -218,6 +224,52 @@ def parse_daily(vault: Path, limit: int = 6) -> dict:
     return {"recent": recent, "total": len(files)}
 
 
+def build_graph(vault: Path) -> dict:
+    """The vault's link graph: notes as nodes, resolved wikilinks as edges.
+
+    This is the memory itself, so the HUD draws it rather than illustrating it.
+    Only resolved links become edges; an unresolved link is a dead end and
+    drawing it would claim a connection that does not exist.
+    """
+    notes = [p for p in vault.rglob("*.md") if ".obsidian" not in p.parts]
+    by_name: dict[str, Path] = {}
+    for p in notes:
+        by_name.setdefault(p.stem, p)
+
+    def group_of(p: Path) -> str:
+        rel = p.relative_to(vault).parts
+        return rel[0] if len(rel) > 1 else "root"
+
+    edges, degree = [], {n: 0 for n in by_name}
+    for p in notes:
+        src = p.stem
+        seen = set()
+        for raw in WIKILINK.findall(read(p)):
+            dst = raw.strip()
+            if dst == src or dst not in by_name or (src, dst) in seen:
+                continue
+            seen.add((src, dst))
+            edges.append([src, dst])
+            degree[src] += 1
+            degree[dst] += 1
+
+    jobs = {p.stem for p in notes
+            if p.parent.name == "Jobs" and p.stem != "Jobs"
+            and not p.stem.startswith("_")}
+    core = {"VAULT-INDEX", "Active Priorities"}
+
+    nodes = [{
+        "id": name,
+        "group": group_of(p),
+        "deg": degree[name],
+        "kind": ("core" if name in core else
+                 "job" if name in jobs else
+                 "index" if name == group_of(p) else "note"),
+    } for name, p in by_name.items()]
+
+    return {"nodes": nodes, "edges": edges}
+
+
 def run_validator(vault: Path) -> dict:
     """Reuse validate.py rather than reimplementing its checks here."""
     try:
@@ -271,6 +323,7 @@ def build_state(vault: Path) -> dict:
         "projects": parse_projects(vault, folders),
         "jobs": parse_jobs(vault, folders),
         "daily": parse_daily(vault),
+        "graph": build_graph(vault),
         "validation": {
             "ok": v.get("ok", False),
             "checks": v.get("checks", 0),
