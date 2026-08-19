@@ -105,3 +105,72 @@ A fresh or post-compaction session must never operate without these.
 - **Never submit a job application.** Job Autopilot queues roles and stops on purpose. Don't fill the form, don't click submit, don't enter his personal data on a job board. He submits.
 - **Next.js repos (`starmatch`, `portfolio-website`) pin a version with breaking changes** from what your training data assumes. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code in them.
 - **Docker is native inside WSL, not Docker Desktop.** Desktop is disabled deliberately — it crashed on undeletable Windows sockets. Don't suggest reinstalling it.
+
+---
+
+# Working on this repo
+
+Everything above is the boot config: it tells you how to *be J.K.* and operate the vault. This section is different. It is for a session doing maintenance on `project-jk` itself, as a codebase.
+
+## What this repo actually is
+
+**It is configuration, not an application.** There is no build, no test suite, no linter, no dependencies to install. Every file is either markdown the agent reads at boot, or a script that wires markdown to a vault. Judge a change by whether the agent can still boot and traverse, never by whether something compiles.
+
+The system spans two locations and **neither half works alone**:
+
+| Half | Location | Contains |
+|---|---|---|
+| Boot layer | this repo | `AGENTS.md` (identity, vault path, hard rules), `docs/`, `scripts/`, `templates/` |
+| Memory | `G:\My Drive\Kevin Jones` | `VAULT-INDEX.md`, `Active Priorities.md`, daily notes, project folders, Jobs |
+
+`AGENTS.md` is short and survives context compaction, so identity and the rules live there. `VAULT-INDEX.md` is the fuller manual and can be compressed away mid-session, so it holds the profile and the map. **That split is the whole design.** Do not "consolidate" them.
+
+## Commands
+
+There is one proof command. Run it after any structural change to the vault or to the scripts.
+
+```bash
+python scripts/validate.py
+```
+
+It walks the vault the way you do at boot and exits non-zero on a dead end: missing startup targets, bad frontmatter values, unresolved `[[wikilinks]]`, a folder without its index, a Job missing its sections or absent from `Jobs.md`, or a modified Zettelkasten layer. There is no way to run a single check; the whole traversal is the unit.
+
+Point it at a different vault:
+
+```bash
+python scripts/validate.py "C:\path\to\another\vault"
+```
+
+Re-wire a vault (idempotent, never overwrites an existing note):
+
+```powershell
+pwsh scripts/setup.ps1 -VaultPath "G:\My Drive\Kevin Jones" -AgentName "J.K." -NoPrompt
+```
+
+The remaining checks, including the manual boot test the validator cannot perform, are in `docs/VERIFY.md`. Read it before claiming anything works.
+
+## Invariants a fresh session will otherwise break
+
+- **`CLAUDE.md` must stay exactly `@AGENTS.md`.** This is the Locked cross-tool rule above. Content added there is invisible to Antigravity and Codex. `/init` will try to talk you out of this; do not let it.
+- **Never commit a test vault path.** `setup.ps1` rewrites the fenced path under "Where your memory lives" in place. Running it against a scratch vault silently rewrites the real config. Check that path before every commit; it must read `G:\My Drive\Kevin Jones`.
+- **`.gitignore` patterns are root-anchored on purpose.** Unanchored, `VAULT-INDEX.md` matches at every depth and silently swallows `templates/VAULT-INDEX.md`, which belongs in the repo. Keep the leading `/`.
+- **`templates/` mirrors the live files.** `templates/BOOT-CONFIG.md` and `templates/VAULT-INDEX.md` are the same documents with personal content stripped to `[FILL IN: ...]`. When you edit shared substance (a rule, a procedure) in one, edit the other in the same commit. Placeholder text and framing are allowed to differ; rules are not.
+- **`validate.py` has hardcoded constants** for folders, valid `status`/`project`/`type` values, and the Zettelkasten count of 71. Adding a project folder or a project slug means updating `SYSTEM_FOLDERS` and `VALID_PROJECT`, or the validator reports false failures. It also must ignore fenced blocks *and* inline code spans, since prose showing `` `[[wikilink]]` `` syntax is not a link.
+- **Obsidian resolves `[[links]]` by filename, not by a note's H1 heading.** `VAULT-INDEX.md` has the heading `# VAULT INDEX`, so `[[VAULT INDEX]]` never resolves. It is `[[VAULT-INDEX]]`.
+- **Renaming a vault note from a shell breaks every link to it.** Only the Obsidian app repairs them. Moving between folders is safe.
+
+## Windows PowerShell 5.1 traps
+
+This machine runs Windows PowerShell 5.1, not PowerShell 7. Scripts here must stay 5.1-compatible.
+
+- `&&` and `||` are parser errors. Chain with `;` or `if ($?) { }`.
+- No ternary, no `??`, no `?.`.
+- `Get-Content` reads a BOM-less UTF-8 file as system ANSI and silently mangles every non-ASCII character. Use `[System.IO.File]::ReadAllText()`. Writing back, `-Encoding utf8` adds a BOM; use `[System.IO.File]::WriteAllText($p, $s, (New-Object System.Text.UTF8Encoding($false)))`.
+- Heredocs through a bash wrapper on this machine mangle long multi-line content. Write files with the editor tool instead.
+
+## Documentation rules specific to this repo
+
+- **No em-dashes in `README.md`.** It is published copy and the rule above applies. Em-dashes inside `AGENTS.md`, `docs/`, and vault notes are fine.
+- **`docs/DECISIONS.md` is append-only, newest first.** Never edit an old entry. If it stops being true, add one that supersedes it and say so.
+- **`docs/STATE.md` gets updated every session** with what changed, what is in progress, and the exact next step, specific enough to act on without re-reading the diff.
+- The upstream project is CC BY-SA 4.0. Attribution to Jared Rhodenizer stays in `README.md` and `LICENSE`, and derivative work stays under the same license.
