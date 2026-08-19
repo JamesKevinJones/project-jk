@@ -8,6 +8,30 @@ deliberately. If a choice would look wrong without context, it belongs here.
 
 ---
 
+## 2026-08-19 — The HUD is a local server with a path whitelist, not a static page
+
+**Context.** The vault is markdown, which is right for the agent and hard for a person to see at a glance. A dashboard needs to read files the browser cannot reach on its own.
+
+**Decision.** A stdlib Python server bound to `127.0.0.1`, serving exactly four paths by name (`/`, `/hud.css`, `/hud.js`, `/api/state`) plus `/index.html`. No directory handler, no framework, no dependencies. The client is vanilla JS.
+
+**Why not the alternative.** `http.server`'s `SimpleHTTPRequestHandler` would have been two lines, and it serves a directory, which next to a private vault is a way to read anything on the machine. Binding `0.0.0.0` would have put the vault on the local network. Both were rejected before writing the handler rather than after.
+
+**Consequences.** Adding a HUD asset means adding it to the `STATIC` dict; forgetting to is a 404, which is the safe direction to fail. `docs/VERIFY.md` carries the traversal checks.
+
+---
+
+## 2026-08-19 — The validator derives its vocabulary from the vault, not from constants
+
+**Context.** The first validator hardcoded the system folder list, the valid `status`/`project`/`type` values, and a Zettelkasten count of 71. It passed on Kevin's vault and failed on every other one, which is a poor look for a public repo.
+
+**Decision.** Discover system folders by their two-digit numeric prefix, parse the field vocabularies out of `VAULT-INDEX.md`'s "Valid Field Values" section, and make the Zettelkasten count informational unless `--zk-expect N` is passed.
+
+**Why not the alternative.** Keeping the constants and documenting "edit these first" moves the work onto every user and guarantees drift, because the vault index already declares the same values. Two sources of truth for one vocabulary is how a validator starts lying.
+
+**Consequences.** `VAULT-INDEX.md` is now load-bearing for validation, not just for the agent. A malformed "Valid Field Values" section degrades to fallbacks with a warning rather than failing hard.
+
+---
+
 ## 2026-08-19 — Correctness is proved by a validator, not by reading the files
 
 **Context.** This project is config, so there is no build and no test suite. The failure mode that matters is a dead end the agent hits mid-task: a wikilink that resolves to nothing, a folder with no index, a Job missing its boot chain. All of it looks fine when you read it and only bites during real work.

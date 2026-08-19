@@ -14,7 +14,7 @@
     pwsh scripts/setup.ps1 -VaultPath "G:\My Drive\Kevin Jones" -AgentName "J.K." -NoPrompt
 #>
 
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [string]$VaultPath,
     [string]$AgentName,
@@ -40,9 +40,14 @@ Write-Host ""
 
 # --- Preflight -------------------------------------------------------------
 
-if (-not (Test-Path $AgentsFile)) {
+if (-not (Test-Path -LiteralPath $AgentsFile)) {
     throw "AGENTS.md not found at $AgentsFile. Run this from inside the cloned repo."
 }
+
+# Written once here so both the note seeding and the folder indexes use it.
+# PS 5.1's `-Encoding utf8` writes a BOM, which shows up as stray characters
+# in other tools.
+$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 # --- Vault path ------------------------------------------------------------
 
@@ -57,6 +62,13 @@ if (-not (Test-Path -LiteralPath $VaultPath)) {
     throw "No folder at '$VaultPath'. Create the vault in Obsidian first, then re-run."
 }
 $VaultPath = (Resolve-Path -LiteralPath $VaultPath).Path.TrimEnd('\')
+
+# The vault is private and this repo is public. A vault inside the working
+# folder would be one `git add -A` away from being published, and .gitignore
+# only guards the paths it knows about.
+if ($VaultPath.TrimEnd('\').ToLower().StartsWith($RepoRoot.TrimEnd('\').ToLower())) {
+    throw "The vault cannot live inside the repo ($RepoRoot). It holds private notes and this folder gets committed. Put the vault somewhere else."
+}
 Write-Ok "Vault: $VaultPath"
 
 # --- Agent name ------------------------------------------------------------
@@ -89,18 +101,28 @@ $agents = [regex]::Replace(
 )
 
 if ($AgentName -ne 'J.K.') {
-    $agents = $agents -replace '(?<![\w.])J\.K\.(?![\w])', [regex]::Escape($AgentName).Replace('\','')
+    # A MatchEvaluator, not a replacement string: `-replace` treats `$` in the
+    # replacement as a capture-group reference, so an agent name containing `$`
+    # would silently corrupt the file.
+    $agents = [regex]::Replace($agents, '(?<![\w.])J\.K\.(?![\w])',
+                               { param($m) $AgentName })
 }
 
 # Windows PowerShell 5.1's `-Encoding utf8` writes a BOM, which shows up as stray
 # characters in other tools. Write UTF-8 without one.
-$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-[System.IO.File]::WriteAllText($AgentsFile, $agents, $Utf8NoBom)
-Write-Ok "Vault path and agent name written into AGENTS.md"
+# This rewrites the live boot config in place. Pointing the script at a scratch
+# vault to try it out will silently repoint your real agent, so say plainly what
+# is about to change and honour -WhatIf.
+if ($PSCmdlet.ShouldProcess($AgentsFile, "set vault path to '$VaultPath' and agent name to '$AgentName'")) {
+    [System.IO.File]::WriteAllText($AgentsFile, $agents, $Utf8NoBom)
+    Write-Ok "Vault path and agent name written into AGENTS.md"
 
-# CLAUDE.md must stay exactly one line, or content hides from Codex and agy.
-[System.IO.File]::WriteAllText($ClaudeFile, "@AGENTS.md`n", $Utf8NoBom)
-Write-Ok "CLAUDE.md pinned to '@AGENTS.md'"
+    # CLAUDE.md must stay exactly one line, or content hides from Codex and agy.
+    [System.IO.File]::WriteAllText($ClaudeFile, "@AGENTS.md`n", $Utf8NoBom)
+    Write-Ok "CLAUDE.md pinned to '@AGENTS.md'"
+} else {
+    Write-Skip "AGENTS.md not modified (-WhatIf)"
+}
 Write-Host ""
 
 # --- Seed the vault --------------------------------------------------------
@@ -114,10 +136,45 @@ $folders = @(
     '18 - Resources',
     '18 - Resources\Jobs'
 )
+# Folder slugs for the `project` frontmatter field, matching VAULT-INDEX.md.
+$folderProject = @{
+    '01 - Daily Notes'     = 'personal'
+    '16 - Personal'        = 'personal'
+    '17 - Archive'         = 'meta'
+    '18 - Resources'       = 'meta'
+    '18 - Resources\Jobs'  = 'meta'
+}
+
 foreach ($f in $folders) {
     $p = Join-Path $VaultPath $f
     if (Test-Path -LiteralPath $p) { Write-Skip "$f already exists" }
     else { New-Item -ItemType Directory -Path $p -Force | Out-Null; Write-Ok "created $f" }
+
+    # Every folder gets its index note at creation time. This is the vault's own
+    # rule, and skipping it means a fresh install fails its own validator: a
+    # folder with no index is a folder no future session will look inside.
+    $leaf = Split-Path -Leaf $f
+    $indexPath = Join-Path $p "$leaf.md"
+    if (Test-Path -LiteralPath $indexPath) { continue }
+    $slug = $folderProject[$f]
+    if (-not $slug) { $slug = 'meta' }
+    $body = @(
+        '---',
+        'status: active',
+        "project: $slug",
+        'type: index',
+        '---',
+        "# $leaf",
+        '',
+        '[One line on what this folder holds. Replace this.]',
+        '',
+        '## Notes in this folder',
+        '',
+        'None yet.',
+        ''
+    ) -join "`n"
+    [System.IO.File]::WriteAllText($indexPath, $body, $Utf8NoBom)
+    Write-Ok "created $f\$leaf.md"
 }
 
 $monthFolder = Join-Path $VaultPath ('01 - Daily Notes\{0:MM} - {0:MMMM yyyy}' -f (Get-Date))
@@ -164,8 +221,22 @@ if (-not $SkipLauncher) {
         )
         Set-Content -LiteralPath $bat -Value ($lines -join "`r`n") -Encoding ascii
         Write-Ok "Desktop shortcut: $bat"
+
+        # Second shortcut: the HUD. Same reasoning as the chat launcher, which
+        # is that nobody should have to remember a command to see their own vault.
+        $hudBat = Join-Path $desktop "$safeName HUD.bat"
+        $hudLines = @(
+            '@echo off',
+            "title $safeName HUD",
+            "cd /d `"$RepoRoot`"",
+            'python scripts\hud.py',
+            'if errorlevel 1 pause'
+        )
+        Set-Content -LiteralPath $hudBat -Value ($hudLines -join "`r`n") -Encoding ascii
+        Write-Ok "Desktop shortcut: $hudBat"
+
         Write-Host ""
-        Write-Warn2 "Double-click it now to test. Never trust an untested shortcut."
+        Write-Warn2 "Double-click them now to test. Never trust an untested shortcut."
     }
 }
 

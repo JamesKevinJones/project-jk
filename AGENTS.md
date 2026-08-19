@@ -141,10 +141,17 @@ Point it at a different vault:
 python scripts/validate.py "C:\path\to\another\vault"
 ```
 
-Re-wire a vault (idempotent, never overwrites an existing note):
+Open the HUD, a local read-only dashboard over the vault:
+
+```bash
+python scripts/hud.py
+```
+
+Re-wire a vault (idempotent, never overwrites an existing note; `-WhatIf` shows
+what it would change without touching anything):
 
 ```powershell
-pwsh scripts/setup.ps1 -VaultPath "G:\My Drive\Kevin Jones" -AgentName "J.K." -NoPrompt
+powershell -ExecutionPolicy Bypass -File scripts/setup.ps1 -VaultPath "G:\My Drive\Kevin Jones" -AgentName "J.K." -NoPrompt
 ```
 
 The remaining checks, including the manual boot test the validator cannot perform, are in `docs/VERIFY.md`. Read it before claiming anything works.
@@ -155,7 +162,8 @@ The remaining checks, including the manual boot test the validator cannot perfor
 - **Never commit a test vault path.** `setup.ps1` rewrites the fenced path under "Where your memory lives" in place. Running it against a scratch vault silently rewrites the real config. Check that path before every commit; it must read `G:\My Drive\Kevin Jones`.
 - **`.gitignore` patterns are root-anchored on purpose.** Unanchored, `VAULT-INDEX.md` matches at every depth and silently swallows `templates/VAULT-INDEX.md`, which belongs in the repo. Keep the leading `/`.
 - **`templates/` mirrors the live files.** `templates/BOOT-CONFIG.md` and `templates/VAULT-INDEX.md` are the same documents with personal content stripped to `[FILL IN: ...]`. When you edit shared substance (a rule, a procedure) in one, edit the other in the same commit. Placeholder text and framing are allowed to differ; rules are not.
-- **`validate.py` has hardcoded constants** for folders, valid `status`/`project`/`type` values, and the Zettelkasten count of 71. Adding a project folder or a project slug means updating `SYSTEM_FOLDERS` and `VALID_PROJECT`, or the validator reports false failures. It also must ignore fenced blocks *and* inline code spans, since prose showing `` `[[wikilink]]` `` syntax is not a link.
+- **`validate.py` reads its vocabulary from the vault, so don't reintroduce constants.** System folders are discovered by their two-digit prefix, and the valid `status`/`project`/`type` values are parsed out of `VAULT-INDEX.md`'s "Valid Field Values" section. Adding a project slug means editing the vault index, not the script. It also must keep ignoring fenced blocks *and* inline code spans, since prose showing `` `[[wikilink]]` `` syntax is not a link.
+- **The HUD serves a fixed path whitelist.** `scripts/hud.py` has a `STATIC` dict and no directory handler, deliberately: it sits next to a private vault. Adding an asset means adding it to that dict. Never swap in `SimpleHTTPRequestHandler`, and never bind anything but `127.0.0.1`.
 - **Obsidian resolves `[[links]]` by filename, not by a note's H1 heading.** `VAULT-INDEX.md` has the heading `# VAULT INDEX`, so `[[VAULT INDEX]]` never resolves. It is `[[VAULT-INDEX]]`.
 - **Renaming a vault note from a shell breaks every link to it.** Only the Obsidian app repairs them. Moving between folders is safe.
 

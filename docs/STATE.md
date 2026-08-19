@@ -3,7 +3,7 @@
 > Updated at the end of every session, by whichever agent was driving.
 > Keep it under a page. This is a baton, not a diary.
 
-**Last updated:** 2026-08-19 by claude-code
+**Last updated:** 2026-08-19 (evening) by claude-code
 
 ## Where things stand
 
@@ -11,7 +11,9 @@ Project J.K. is live and usable right now. Running `claude` from this folder boo
 
 The pre-existing Zettelkasten layer in that vault was left completely untouched: 71 notes across `1 - Rough Notes` through `7 - Career`, none of them modified during the build (verified by mtime, not by assumption). The vault holds 87 markdown files in total counting `copilot/` (15) and `TaskNotes/` (1). Nothing was renamed or moved, so no `[[wikilinks]]` broke.
 
-A validator (`scripts/validate.py`) now walks the vault the way the agent does at boot and currently reports `PASSED - 15 checks, 63 wikilinks resolved`. A clean-room test (fresh clone from GitHub into an empty vault) confirms `setup.ps1` works for someone who is not Kevin.
+A validator (`scripts/validate.py`) walks the vault the way the agent does at boot and reports `PASSED - 12 checks, 63 wikilinks resolved`. It is now portable: system folders are discovered by prefix and the field vocabularies are parsed from `VAULT-INDEX.md`, so it works on any vault, not just this one. A clean-room test (fresh clone into an empty vault) passes end to end.
+
+The HUD (`python scripts/hud.py`, or the `J.K. HUD.bat` desktop shortcut) serves a live dashboard at `http://127.0.0.1:7842` reading the real vault: 110 notes, 25,090 words, 310 wikilinks, 8 projects, 5 Jobs. Verified in a browser: search filters all three panels, Job and project detail panels open and close, empty states render, every text colour clears 4.5:1 contrast, no horizontal overflow at 375px, and the path whitelist 404s traversal attempts.
 
 ## In progress
 

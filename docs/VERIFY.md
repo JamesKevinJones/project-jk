@@ -61,7 +61,28 @@ cd "/g/My Drive/Kevin Jones" && find "1 - Rough Notes" "2 - Source Material" "3 
 
 Must report `0`. Anything else means the build, or a later session, wrote into the Zettelkasten layer it was supposed to leave alone.
 
-## 6. The real test: boot the agent
+## 6. The HUD serves and reads the vault
+
+```bash
+python scripts/hud.py --no-browser --port 7842
+```
+
+In another shell:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:7842/
+curl -s http://127.0.0.1:7842/api/state | python -c "import json,sys; d=json.load(sys.stdin); print(d['agent'], d['stats'], d['validation']['ok'])"
+```
+
+Index must return `200` and the state must report real counts, not zeros. If `notes` is 0 the server found the folder but not the notes, which usually means a cloud-sync placeholder problem rather than a code problem.
+
+Only `/`, `/index.html`, `/hud.css`, `/hud.js`, and `/api/state` are served. Anything else must 404, including path traversal:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" "http://127.0.0.1:7842/../AGENTS.md"
+```
+
+## 7. The real test: boot the agent
 
 Open a new terminal in this folder:
 

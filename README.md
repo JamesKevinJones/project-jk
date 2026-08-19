@@ -18,6 +18,7 @@ Built on [ai-memory-vault](https://github.com/jaredrhod/ai-memory-vault) by [Jar
 - [How the system was built](#how-the-system-was-built)
 - [Every file, and what it does](#every-file-and-what-it-does)
 - [Jobs: the part that makes it an operating system](#jobs-the-part-that-makes-it-an-operating-system)
+- [The HUD](#the-hud)
 - [The vault rules](#the-vault-rules)
 - [Set it up for yourself](#set-it-up-for-yourself)
 - [Verifying it actually works](#verifying-it-actually-works)
@@ -83,7 +84,7 @@ flowchart LR
         A["AGENTS.md<br/><i>identity, vault path, hard rules</i>"]
         C["CLAUDE.md<br/><i>one line: @AGENTS.md</i>"]
         D["docs/<br/><i>STATE, DECISIONS, VERIFY</i>"]
-        S["scripts/<br/><i>setup.ps1, validate.py</i>"]
+        S["scripts/ + hud/<br/><i>setup, validate, HUD</i>"]
     end
     subgraph VAULT["Memory (private Obsidian vault)"]
         V["VAULT-INDEX.md<br/><i>profile and map</i>"]
@@ -115,9 +116,14 @@ project-jk/
 │   ├── STATE.md                 where the last session stopped, and the exact next step
 │   ├── DECISIONS.md             why it is built this way, append only
 │   └── VERIFY.md                exact commands that prove a change works
+├── hud/
+│   ├── index.html               the heads-up display
+│   ├── hud.css                  one cyan accent, hairline strokes, no framework
+│   └── hud.js                   vanilla, no dependencies
 ├── scripts/
-│   ├── setup.ps1                wires a vault, seeds notes, drops a launcher
-│   └── validate.py              walks the vault the way the agent does at boot
+│   ├── setup.ps1                wires a vault, seeds notes, drops launchers
+│   ├── validate.py              walks the vault the way the agent does at boot
+│   └── hud.py                   stdlib server, reads the vault, serves the HUD
 └── templates/
     ├── BOOT-CONFIG.md           AGENTS.md with personal content stripped
     ├── VAULT-INDEX.md           the operating manual, blank
@@ -195,6 +201,8 @@ The validator itself had a bug too: it flagged prose *about* wikilink syntax as 
 | `docs/VERIFY.md` | Exact commands that prove a change works. | Rarely |
 | `scripts/setup.ps1` | Wires a vault to the config, seeds starter notes, drops a launcher. | Rarely |
 | `scripts/validate.py` | Walks the vault the way the agent does at boot and fails loudly. | Rarely |
+| `scripts/hud.py` | Local server that reads the vault and serves the HUD. | Rarely |
+| `hud/` | The heads-up display. Vanilla HTML, CSS, and JS. | Rarely |
 
 ### `AGENTS.md` in detail
 
@@ -256,6 +264,33 @@ That Job also carries a hard prohibition in its quality bar: **never submit an a
 
 **Add a Job the moment you explain the same task twice.**
 
+## The HUD
+
+A markdown vault is excellent for an agent and hard for a human to see at a glance. The HUD is a local heads-up display that reads the vault live and shows what the agent sees at boot.
+
+```bash
+python scripts/hud.py
+```
+
+It opens at `http://127.0.0.1:7842`. There is also a desktop shortcut, `<agent> HUD.bat`, if you would rather not remember the command.
+
+**What it shows**
+
+| Panel | Reads from |
+|---|---|
+| Systems | `validate.py`, run live. Green when the vault traverses clean, red with the specific faults when it does not. |
+| Memory | Note count, word count, wikilink count, folder count, and the vault path. |
+| Daily log | The `## Index` block of each recent daily note, so you can scan a week in seconds. |
+| Active priorities | Open and completed items, with their project tags. |
+| Projects | One row per project folder, with note counts. Click one for its slug, index status, and open items. |
+| Jobs | One row per Job. Click one to see its boot chain, the exact notes it loads and nothing else. |
+
+Type `/` to filter priorities, projects, and Jobs at once. `Esc` clears. It re-reads the vault every 30 seconds.
+
+**How it is built.** Standard library Python, vanilla JavaScript, hand-written CSS. No framework, no bundler, no dependencies, no build step. The server binds to `127.0.0.1` and serves exactly three files by name rather than a directory, because the vault it reads is private and a directory handler would be a way to read anything on the machine.
+
+The visual language is a deliberate commitment rather than a default: near-black with a blue cast (not `#000`), one cyan accent, hairline strokes, corner brackets, and a monospace stack that ships with Windows. The arc reactor is inline SVG with its tick marks generated in a loop; nothing is imported. Every text colour clears 4.5:1 contrast against the background, verified by measuring the composited values rather than eyeballing them, and `prefers-reduced-motion` stops the rotation and the translations while keeping opacity fades, because killing every animation makes an interface feel broken rather than calm.
+
 ## The vault rules
 
 These live in `VAULT-INDEX.md` and apply to any AI that touches the vault.
@@ -290,7 +325,7 @@ cd project-jk
 ```
 
 ```powershell
-pwsh scripts/setup.ps1
+powershell -ExecutionPolicy Bypass -File scripts/setup.ps1
 ```
 
 The script asks for your vault path and agent name, writes both into `AGENTS.md`, seeds the starter notes without ever overwriting a note that already exists, and offers to drop a desktop launcher. It is safe to re-run, and it tells you what it skipped.
@@ -298,7 +333,7 @@ The script asks for your vault path and agent name, writes both into `AGENTS.md`
 Non-interactive:
 
 ```powershell
-pwsh scripts/setup.ps1 -VaultPath "C:\path\to\vault" -AgentName "J.K." -NoPrompt
+powershell -ExecutionPolicy Bypass -File scripts/setup.ps1 -VaultPath "C:\path\to\vault" -AgentName "J.K." -NoPrompt
 ```
 
 Then start a session from the repo folder:

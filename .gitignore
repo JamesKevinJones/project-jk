@@ -17,6 +17,10 @@
 *.pem
 secrets.*
 
+# Python bytecode from the validator and HUD server
+__pycache__/
+*.py[cod]
+
 # OS / editor
 Thumbs.db
 desktop.ini

@@ -26,7 +26,7 @@ This vault lives at `[FILL IN: your vault's full path — e.g. /Users/you/Docume
 ## Key People
 
 [FILL IN: one line per important person in your work and life — partners, team, family, mentors:]
-- **[[Name]]** — [FILL IN: who they are and their role to you]
+- **[[FILL IN: their name]]** — [FILL IN: who they are and their role to you]
 
 ## [FILL IN: Project 1 name, with its folder in parentheses — e.g. "The Coffee Shop (02 - Coffee Shop)"]
 
