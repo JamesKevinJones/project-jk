@@ -60,17 +60,32 @@ const Graph = (() => {
     if (fg) inkRGB = fg.slice(0, 3).join(',');
   }
 
-  let pending = null;   // graph data that arrived before the canvas had a size
+  let pending = null;     // graph data that arrived before the canvas had a size
+  let retry = null;
 
   function load(g) {
     size();
     if (!w || !h) {
-      // The canvas can measure 0x0 if data lands before layout settles. Hold
-      // the data and let the ResizeObserver below build it the moment the
-      // element has real dimensions, rather than silently rendering nothing.
+      // The canvas can measure 0x0 when data lands before layout settles.
+      // A ResizeObserver alone is not enough: its one initial callback can
+      // arrive while the element is still 0x0, and no later resize follows.
+      // So hold the data and poll briefly as well. setTimeout is deliberate,
+      // since rAF does not run in a background or non-compositing tab.
       pending = g;
+      if (!retry) {
+        let tries = 0;
+        retry = setInterval(() => {
+          if (++tries > 60) { clearInterval(retry); retry = null; return; }
+          const r = cv.getBoundingClientRect();
+          if (!r.width || !r.height) return;
+          clearInterval(retry); retry = null;
+          const data = pending; pending = null;
+          if (data) load(data);
+        }, 50);
+      }
       return;
     }
+    if (retry) { clearInterval(retry); retry = null; }
     pending = null;
     nodes = g.nodes.map((n, i) => ({
       ...n, i,

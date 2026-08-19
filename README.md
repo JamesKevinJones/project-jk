@@ -120,7 +120,7 @@ project-jk/
 │   ├── index.html               scroll story + live console
 │   ├── hud.css                  neo-brutalist, after StarMatch
 │   ├── hud.js                   vanilla + GSAP ScrollTrigger
-│   ├── fonts/                   Archivo Black, Fraunces, IBM Plex Mono (local)
+│   ├── fonts/                   Lilita One, Grenze, IBM Plex Mono (OFL, local)
 │   └── vendor/                  GSAP + ScrollTrigger, vendored not CDN
 ├── scripts/
 │   ├── setup.ps1                wires a vault, seeds notes, drops launchers
@@ -301,10 +301,20 @@ Borrowed from StarMatch, which is the neo-brutalist language already in this wor
 
 Colour is load-bearing. Mint, acid, and coral mean nominal, advisory, and fault, and nothing decorative uses them. One gradient exists on the entire page, on the title, the same way StarMatch confines gradient to its shader layer.
 
-Type is Archivo Black for display, Fraunces for prose, and IBM Plex Mono for data. All three are downloaded to `hud/fonts/` and served locally, so the page makes no external request. Swapping a typeface is one command:
+Type is **PUSAB** for display and **Luminari** for prose, with **IBM Plex Mono** for data.
+
+Neither of the first two is redistributable, so neither is committed here. Luminari is proprietary to Apple and ships with macOS; PUSAB is free for personal use only. Both are named first in the CSS stack, so any machine that has them installed uses them with no code change. What is vendored is the closest open-licensed match, which is what renders everywhere else:
+
+| Intended | Vendored fallback | Licence |
+|---|---|---|
+| PUSAB | Lilita One | SIL OFL 1.1 |
+| Luminari | Grenze | SIL OFL 1.1 |
+| IBM Plex Mono | IBM Plex Mono | SIL OFL 1.1 |
+
+Swapping any of them is one command:
 
 ```bash
-python scripts/fetch-fonts.py "Archivo Black" "Fraunces:opsz,wght@9..144,400;9..144,600" "IBM Plex Mono:wght@400;600"
+python scripts/fetch-fonts.py "Lilita One" "Grenze:wght@400;600" "IBM Plex Mono:wght@400;600"
 ```
 
 GSAP is vendored into `hud/vendor/` rather than loaded from a CDN, for the same reason.
@@ -482,7 +492,9 @@ What is added here:
 Both are redistributed inside this repository so the page makes no external requests.
 
 - **GSAP 3.15.0** and **ScrollTrigger**, in `hud/vendor/`. Copyright (c) 2008-2026 GreenSock, used under their standard "no charge" license: https://gsap.com/standard-license
-- **Archivo Black**, **Fraunces**, and **IBM Plex Mono**, in `hud/fonts/`, all under the SIL Open Font License 1.1. Re-fetch or swap them with `scripts/fetch-fonts.py`.
+- **Lilita One**, **Grenze**, and **IBM Plex Mono**, in `hud/fonts/`, all under the SIL Open Font License 1.1. Re-fetch or swap them with `scripts/fetch-fonts.py`.
+
+PUSAB and Luminari are referenced by name in the CSS stack but deliberately **not** included, because their licences do not permit redistribution.
 
 ## License
 

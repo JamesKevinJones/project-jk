@@ -8,6 +8,18 @@ deliberately. If a choice would look wrong without context, it belongs here.
 
 ---
 
+## 2026-08-19 — The named typefaces are referenced, not redistributed
+
+**Context.** The brief named PUSAB for display and Luminari for prose. Neither is on Google Fonts, neither was installed on this machine, and neither is redistributable: Luminari is proprietary to Apple and ships with macOS, PUSAB is licensed free for personal use only.
+
+**Decision.** Name both first in the CSS stack so any machine that has them uses them with no code change, and vendor the closest open-licensed matches for everyone else: Lilita One for PUSAB, Grenze for Luminari, both SIL OFL 1.1.
+
+**Why not the alternative.** Committing the two font files would have made the page look exactly right immediately, and would have put a licence violation in a public repository. Substituting silently without saying so would have been worse, because the difference is visible and the reason would not be.
+
+**Consequences.** On this Windows machine the page renders Lilita One and Grenze, confirmed by width-probing against a monospace sentinel rather than by trusting the stack. Installing PUSAB locally changes the rendering with no edit. The substitution is documented in the README so nobody mistakes the fallback for the intent.
+
+---
+
 ## 2026-08-19 — The console adopts StarMatch's neo-brutalism, and vendors its dependencies
 
 **Context.** The console had been through two dark variants and one light instrument panel. The brief became explicit: take the visual language from StarMatch, add a GSAP scroll story, make the graph nodes actually interactive, and use the supplied typefaces.

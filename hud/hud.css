@@ -32,8 +32,15 @@
   --brut-lg: 10px 10px 0 0 var(--line);
   --radius:  2px;
 
-  --font-display: "Archivo Black", "Arial Black", system-ui, sans-serif;
-  --font-serif:   "Fraunces", Georgia, "Times New Roman", serif;
+  /* The two named faces come first so any machine that HAS them uses them:
+     Luminari ships with macOS, and PUSAB can be installed locally. Neither is
+     redistributable - Luminari is proprietary to Apple, PUSAB is free for
+     personal use only - so neither is vendored into this public repo. What is
+     vendored is the closest open-licensed match, which is what renders on a
+     machine without them. Install PUSAB locally and the stack picks it up with
+     no code change. */
+  --font-display: "PUSAB", "Pusab", "Lilita One", "Cooper Black", "Arial Black", system-ui, sans-serif;
+  --font-serif:   "Luminari", "Grenze", Georgia, "Times New Roman", serif;
   --font-mono:    "IBM Plex Mono", ui-monospace, Consolas, monospace;
 
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 20px; --s5: 32px; --s6: 56px;
@@ -103,15 +110,17 @@ h1, h2, h3 {
   box-shadow: var(--brut-sm);
 }
 
-.mega { margin: 0; font-size: clamp(48px, 11.5vw, 158px); }
-.mega-line { display: block; }
-/* the one gradient on the page, and it is confined to the title */
-.mega-line:nth-child(2) {
-  background: linear-gradient(180deg, var(--coral) 0%, var(--acid) 100%);
+/* PUSAB and its fallbacks are chunkier and wider than a grotesk, so the
+   negative tracking that suits Archivo would collide the counters here. */
+.mega { margin: 0; font-size: clamp(44px, 10.5vw, 140px); letter-spacing: 0; }
+.mega-line {
+  display: block; line-height: 0.98;
+  /* the one gradient on the page, confined to the title, with the hard
+     offset shadow the brutalist chrome uses everywhere else */
+  background: linear-gradient(175deg, var(--coral) 8%, var(--acid) 92%);
   -webkit-background-clip: text; background-clip: text;
   color: transparent;
-  /* the hard offset shadow, drawn as a stroke-free duplicate */
-  filter: drop-shadow(6px 6px 0 var(--line));
+  filter: drop-shadow(5px 5px 0 var(--line));
 }
 
 .hero-lede {
