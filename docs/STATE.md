@@ -3,7 +3,7 @@
 > Updated at the end of every session, by whichever agent was driving.
 > Keep it under a page. This is a baton, not a diary.
 
-**Last updated:** 2026-08-19 (evening) by claude-code
+**Last updated:** 2026-08-19 (late) by claude-code
 
 ## Where things stand
 
@@ -13,7 +13,11 @@ The pre-existing Zettelkasten layer in that vault was left completely untouched:
 
 A validator (`scripts/validate.py`) walks the vault the way the agent does at boot and reports `PASSED - 12 checks, 63 wikilinks resolved`. It is now portable: system folders are discovered by prefix and the field vocabularies are parsed from `VAULT-INDEX.md`, so it works on any vault, not just this one. A clean-room test (fresh clone into an empty vault) passes end to end.
 
-The HUD (`python scripts/hud.py`, or the `J.K. HUD.bat` desktop shortcut) serves a live dashboard at `http://127.0.0.1:7842` reading the real vault: 110 notes, 25,090 words, 310 wikilinks, 8 projects, 5 Jobs. Verified in a browser: search filters all three panels, Job and project detail panels open and close, empty states render, every text colour clears 4.5:1 contrast, no horizontal overflow at 375px, and the path whitelist 404s traversal attempts.
+The console (`python scripts/hud.py`, or the `J.K. HUD.bat` desktop shortcut) serves a page at `http://127.0.0.1:7842` in two halves: a five-beat GSAP ScrollTrigger story over the vault's real link graph, then the live console. The visual language is StarMatch's neo-brutalism. GSAP is vendored in `hud/vendor/`; Archivo Black, Fraunces and IBM Plex Mono are downloaded into `hud/fonts/` by `scripts/fetch-fonts.py`. The page makes no external requests.
+
+Verified in a browser: 108 nodes / 269 edges render and paint; hovering a node shows its name, kind and link count; clicking opens it with its real neighbours; job chips drop the lit graph from 45,417 to 5,392 painted pixels; the story fires the right beat at every scroll depth; 39 text colours pass contrast in both light and dark with a floor of 9.72:1; no overflow and all 19 tap targets clear 44px at 375px.
+
+Snapshot cost went from 3.9s to **0.35s warm** after fixing a validator cache that never stored its result, collapsing seven vault walks into one, and making reads generation-scoped.
 
 ## In progress
 

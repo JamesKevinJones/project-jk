@@ -117,13 +117,16 @@ project-jk/
 │   ├── DECISIONS.md             why it is built this way, append only
 │   └── VERIFY.md                exact commands that prove a change works
 ├── hud/
-│   ├── index.html               the instrument console
-│   ├── hud.css                  light anodised panel, colour reserved for lamp states
-│   └── hud.js                   vanilla, no dependencies
+│   ├── index.html               scroll story + live console
+│   ├── hud.css                  neo-brutalist, after StarMatch
+│   ├── hud.js                   vanilla + GSAP ScrollTrigger
+│   ├── fonts/                   Archivo Black, Fraunces, IBM Plex Mono (local)
+│   └── vendor/                  GSAP + ScrollTrigger, vendored not CDN
 ├── scripts/
 │   ├── setup.ps1                wires a vault, seeds notes, drops launchers
 │   ├── validate.py              walks the vault the way the agent does at boot
-│   └── hud.py                   stdlib server, reads the vault, serves the console
+│   ├── hud.py                   stdlib server, reads the vault, serves the console
+│   └── fetch-fonts.py           downloads Google Fonts locally, one command to swap
 └── templates/
     ├── BOOT-CONFIG.md           AGENTS.md with personal content stripped
     ├── VAULT-INDEX.md           the operating manual, blank
@@ -266,7 +269,7 @@ That Job also carries a hard prohibition in its quality bar: **never submit an a
 
 ## The console
 
-A markdown vault is excellent for an agent and hard for a person to read at a glance. The console is a local, read-only instrument panel over it.
+The vault is markdown, which suits the agent and is hard for a person to read at a glance. The page is two halves: a scroll story that explains the mechanism using the real vault, then the live console.
 
 ```bash
 python scripts/hud.py
@@ -274,39 +277,51 @@ python scripts/hud.py
 
 It opens at `http://127.0.0.1:7842`. There is a desktop shortcut too, `<agent> HUD.bat`.
 
-### What it shows
+### The scroll story
 
-Nine modules on a twelve-column grid, sized to fit one screen at 1440x900 with no scrolling and no empty space.
+Five beats, driven by GSAP ScrollTrigger, over a force-directed graph of the actual vault:
 
-| Module | Reads from |
-|---|---|
-| Memory status | The hero. One word (NOMINAL or FAULT) plus notes, links, words, and checks run. |
-| Faults and advisories | `validate.py` output, itemised. Empty state says "no faults" rather than showing nothing. |
-| Channels | Seven meters: counts, link density per note, and average boot-chain length. |
-| Open work | Priorities as a table, project tag and state per row. |
-| Jobs | One row per Job with chain length, notes lit, and step count. |
-| Distribution | Notes per folder as bars, sorted, with the pre-existing Zettelkasten shown separately. |
-| Daily log | The `## Index` block of each recent daily note. |
-| Projects | Slug, note count, and whether the folder index exists. |
-| Link graph | The vault's real wikilink graph. Select a Job to light its chain. |
+1. **Every session starts as a stranger.** The field is scattered and only part of it is present.
+2. **The memory moved out of the model.** Scrubbing the scroll collapses the scatter and streams the notes in, so the reader assembles the vault themselves.
+3. **Structure is what makes it findable.** The twelve most connected notes light up.
+4. **A job loads only what it needs.** Pick any job and the vault goes dark except the notes that job actually loads. Three of a hundred and ten, counted on screen.
+5. **It keeps itself honest.** The validator result, which is the console below.
 
-Select a Job and the graph dims everything except the notes that Job loads. `/` filters Open work, Jobs, and Projects at once. `Esc` clears the selection, then the filter. Rows are keyboard-reachable; `Enter` selects, `i` opens the full Job note.
+### The nodes work
+
+The graph is not a decorative backdrop. Hover any node for its name, kind, and link count. Click it to open the note with its real neighbours listed. Selecting a job lights exactly its boot chain.
+
+### The console
+
+Seven cards: memory status, faults, open work, jobs, notes per folder, daily log, and projects. Type `/` to filter open work, jobs, and projects at once. `Esc` clears the selection, then the filter. It re-reads the vault every 30 seconds.
 
 ### The visual direction
 
-An instrument panel, not a screensaver. The first two attempts were dark with a single bright accent, which is the look AI-generated dashboards converge on, and the legibility suffered for it. Real instrument panels are the opposite: Apollo, Soyuz, and avionics stacks use light gray-green anodised faces with black legend text, and reserve colour entirely for lamp states.
+Borrowed from StarMatch, which is the neo-brutalist language already in this workspace: hard 3px ink borders, hard offset shadows with no blur, flat high-chroma accents that are never blended, 2px radius. Paper `#f4f1ea` on ink `#0b0b0b`, inverted for dark mode with the rules kept bright rather than going soft grey on grey.
 
-So the console is light. Green, amber, and red mean nominal, advisory, and fault, and **nothing decorative is allowed to use them**, which means a red pixel anywhere on the panel always means something is wrong. Every number is tabular and right-aligned so columns compare by eye. There is no border-radius anywhere; panels are milled, not rounded.
+Colour is load-bearing. Mint, acid, and coral mean nominal, advisory, and fault, and nothing decorative uses them. One gradient exists on the entire page, on the title, the same way StarMatch confines gradient to its shader layer.
 
-Type is Bahnschrift, a DIN descendant and therefore the vernacular of gauges, signage, and engineering drawings, paired with Cascadia Mono for data because the vault is text files. Both ship with Windows, so the page makes no network request for a font.
+Type is Archivo Black for display, Fraunces for prose, and IBM Plex Mono for data. All three are downloaded to `hud/fonts/` and served locally, so the page makes no external request. Swapping a typeface is one command:
+
+```bash
+python scripts/fetch-fonts.py "Archivo Black" "Fraunces:opsz,wght@9..144,400;9..144,600" "IBM Plex Mono:wght@400;600"
+```
+
+GSAP is vendored into `hud/vendor/` rather than loaded from a CDN, for the same reason.
 
 ### Accessibility
 
-A force-directed graph on a canvas is close to unusable for a screen reader, so the canvas is `aria-hidden` and is never the only route to a fact: every number and boot chain it draws is also a table cell next to it. Thirty-one text colours were measured against their real composited backgrounds with transitions frozen; the lowest is 4.9:1 against a 4.5:1 requirement. Lamp state is carried by fill and label, not hue alone. Interactive rows are focusable and operable by keyboard, and reach 44px on touch. There is almost no motion, which is correct for a panel you read rather than watch.
+A force-directed graph on a canvas is close to unusable for a screen reader, so it is never the only route to a fact: every count and boot chain it draws is also a table cell below it. There is a skip link to the console for anyone who does not want the story.
+
+Thirty-nine text colours were measured against their real composited backgrounds with transitions frozen, in **both** light and dark. Zero failures; the lowest is 9.72:1 against a 4.5:1 requirement. Any element with a fixed accent background pins its own ink rather than inheriting a token that flips with the theme. Tap targets reach 44px on touch, and interactive rows are keyboard operable.
+
+Under `prefers-reduced-motion` the simulation settles instantly instead of animating and the scroll story stops scrubbing. Separately, no animation is allowed to leave content hidden: the entrance timeline carries a `setTimeout` failsafe, and scroll-triggered headings use `immediateRender: false`, so a heading you never scroll to is readable rather than sitting at opacity zero.
 
 ### How it is built
 
-Standard library Python, vanilla JavaScript, hand-written CSS. No framework, no bundler, no dependencies, no build step. The server binds to `127.0.0.1` and serves exactly four paths by name rather than a directory, because the vault it reads is private.
+Standard library Python on the server, vanilla JavaScript on the client, hand-written CSS, GSAP for the story. No bundler, no build step. The server binds to `127.0.0.1` and serves four paths by name plus two asset folders that resolve and confirm containment before reading, because the vault it sits next to is private.
+
+Building a snapshot originally took 3.9 seconds because it walked the vault seven times and re-ran the validator every poll. One cached walk, generation-scoped reads, and a validator TTL bring it to **0.35s warm**.
 
 ## The vault rules
 
@@ -461,6 +476,13 @@ What is added here:
 - A two-layer vault approach that adds a memory system to an existing Zettelkasten without renaming or moving a single existing note.
 - `scripts/validate.py`, which walks the vault the way the agent does at boot and fails loudly on a broken link, a bad frontmatter value, a missing index, or a malformed Job.
 - Jobs written for a real workflow, including hard prohibitions encoded where an agent will actually read them.
+
+## Third-party assets
+
+Both are redistributed inside this repository so the page makes no external requests.
+
+- **GSAP 3.15.0** and **ScrollTrigger**, in `hud/vendor/`. Copyright (c) 2008-2026 GreenSock, used under their standard "no charge" license: https://gsap.com/standard-license
+- **Archivo Black**, **Fraunces**, and **IBM Plex Mono**, in `hud/fonts/`, all under the SIL Open Font License 1.1. Re-fetch or swap them with `scripts/fetch-fonts.py`.
 
 ## License
 

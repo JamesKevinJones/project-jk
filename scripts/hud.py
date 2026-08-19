@@ -26,6 +26,7 @@ import re
 import subprocess
 import sys
 import threading
+import time
 import webbrowser
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -34,13 +35,24 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 HUD_DIR = REPO / "hud"
 
-# Only these are ever served. The vault is private; a directory handler here
-# would be a way to read arbitrary files off the machine.
+# Only these are ever served by name. The vault is private; a directory handler
+# here would be a way to read arbitrary files off the machine.
 STATIC = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/index.html": ("index.html", "text/html; charset=utf-8"),
     "/hud.css": ("hud.css", "text/css; charset=utf-8"),
     "/hud.js": ("hud.js", "text/javascript; charset=utf-8"),
+}
+
+# Two asset folders are served by prefix, because their contents are generated
+# (fonts are fetched, GSAP is vendored) and listing them by hand would go stale.
+# Each request is still resolved and confirmed to sit inside hud/, and only
+# these extensions are allowed, so this is not a directory handler.
+ASSET_DIRS = {"/fonts/": HUD_DIR / "fonts", "/vendor/": HUD_DIR / "vendor"}
+ASSET_TYPES = {
+    ".woff2": "font/woff2",
+    ".css": "text/css; charset=utf-8",
+    ".js": "text/javascript; charset=utf-8",
 }
 
 SYSTEM_FOLDER = re.compile(r"^\d{2} - .+")
@@ -71,11 +83,68 @@ def agent_name() -> str:
     return "J.K."
 
 
-def read(p: Path) -> str:
+# The vault sits on Google Drive, so every read is a network filesystem hit.
+# Building one snapshot touches each note several times (stats, folder rollup,
+# graph), and the page re-polls every 30s. Without this cache that was 4-6s per
+# request; keyed on mtime+size so an edit in Obsidian still invalidates.
+_READ_CACHE: dict[str, tuple[int, tuple[float, int], str]] = {}
+
+
+# One rglob of the vault costs ~500ms on Google Drive. Building a snapshot used
+# to walk it seven times (stats, graph, per folder, daily, projects), which was
+# most of a 3.4s response. Walk once and let every caller filter the result.
+_LIST_CACHE: tuple[float, str, list[Path]] | None = None
+LIST_TTL = 5.0
+
+
+_GENERATION = 0
+
+
+def list_md(vault: Path) -> list[Path]:
+    global _LIST_CACHE, _GENERATION
+    now = time.monotonic()
+    if _LIST_CACHE and _LIST_CACHE[1] == str(vault) and now - _LIST_CACHE[0] < LIST_TTL:
+        return _LIST_CACHE[2]
+    files = [p for p in vault.rglob("*.md") if ".obsidian" not in p.parts]
+    _LIST_CACHE = (now, str(vault), files)
+    # A fresh walk opens a new generation, which is what lets read() skip its
+    # stat() for the rest of this snapshot. 110 stats cost ~450ms on Drive.
+    _GENERATION += 1
+    return files
+
+
+def under(p: Path, root: Path) -> bool:
     try:
-        return p.read_text(encoding="utf-8", errors="replace")
+        return p.is_relative_to(root)
+    except AttributeError:  # pragma: no cover - Python < 3.9
+        return str(p).startswith(str(root))
+
+
+def read(p: Path) -> str:
+    """Cached file read.
+
+    Within one generation (one directory walk, so one snapshot) a file is read
+    at most once and not even stat'd again. When list_md re-walks after its TTL,
+    the generation moves and every file is re-stat'd, so an edit made in Obsidian
+    shows up on the next poll rather than being cached forever.
+    """
+    key = str(p)
+    hit = _READ_CACHE.get(key)
+    if hit and hit[0] == _GENERATION:
+        return hit[2]
+    try:
+        st = p.stat()
     except OSError:
         return ""
+    if hit and hit[1] == (st.st_mtime, st.st_size):
+        _READ_CACHE[key] = (_GENERATION, hit[1], hit[2])
+        return hit[2]
+    try:
+        text = p.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+    _READ_CACHE[key] = (_GENERATION, (st.st_mtime, st.st_size), text)
+    return text
 
 
 def strip_frontmatter(text: str) -> str:
@@ -176,7 +245,7 @@ def parse_projects(vault: Path, folders: list[str]) -> list[dict]:
         if folder in skip:
             continue
         d = vault / folder
-        notes = [p for p in d.rglob("*.md")]
+        notes = [p for p in list_md(vault) if under(p, d)]
         idx = d / f"{folder}.md"
         text = read(idx) if idx.is_file() else ""
         fm = FRONTMATTER.match(text)
@@ -200,8 +269,8 @@ def parse_daily(vault: Path, limit: int = 6) -> dict:
     d = vault / "01 - Daily Notes"
     if not d.is_dir():
         return {"recent": [], "streak": 0}
-    files = sorted((p for p in d.rglob("*.md")
-                    if re.match(r"^\d{4}-\d{2}-\d{2}$", p.stem)),
+    files = sorted((p for p in list_md(vault)
+                    if under(p, d) and re.match(r"^\d{4}-\d{2}-\d{2}$", p.stem)),
                    key=lambda p: p.stem, reverse=True)
     recent = []
     for p in files[:limit]:
@@ -231,7 +300,7 @@ def build_graph(vault: Path) -> dict:
     Only resolved links become edges; an unresolved link is a dead end and
     drawing it would claim a connection that does not exist.
     """
-    notes = [p for p in vault.rglob("*.md") if ".obsidian" not in p.parts]
+    notes = list_md(vault)
     by_name: dict[str, Path] = {}
     for p in notes:
         by_name.setdefault(p.stem, p)
@@ -270,18 +339,34 @@ def build_graph(vault: Path) -> dict:
     return {"nodes": nodes, "edges": edges}
 
 
+_VALIDATOR_CACHE: dict[str, tuple[float, dict]] = {}
+VALIDATOR_TTL = 20.0
+
+
 def run_validator(vault: Path) -> dict:
-    """Reuse validate.py rather than reimplementing its checks here."""
+    """Reuse validate.py rather than reimplementing its checks here.
+
+    It runs as a subprocess, which means a fresh interpreter and a second full
+    walk of the vault. That is fine occasionally and wasteful on a 30s poll, so
+    the result is held briefly. Structural breakage does not appear and vanish
+    inside 20 seconds.
+    """
+    key = str(vault)
+    hit = _VALIDATOR_CACHE.get(key)
+    if hit and (time.monotonic() - hit[0]) < VALIDATOR_TTL:
+        return hit[1]
     try:
         r = subprocess.run(
             [sys.executable, str(REPO / "scripts" / "validate.py"),
              str(vault), "--json"],
             capture_output=True, text=True, timeout=60,
         )
-        return json.loads(r.stdout)
+        out = json.loads(r.stdout)
     except Exception as e:  # the HUD must render even if the validator dies
-        return {"ok": False, "checks": 0, "links": 0,
-                "failures": [f"validator could not run: {e}"], "warnings": []}
+        out = {"ok": False, "checks": 0, "links": 0,
+               "failures": [f"validator could not run: {e}"], "warnings": []}
+    _VALIDATOR_CACHE[key] = (time.monotonic(), out)
+    return out
 
 
 def build_state(vault: Path) -> dict:
@@ -298,7 +383,7 @@ def build_state(vault: Path) -> dict:
         elif ZK_FOLDER.match(p.name):
             zk.append(p.name)
 
-    all_md = [p for p in vault.rglob("*.md") if ".obsidian" not in p.parts]
+    all_md = list_md(vault)
     words = 0
     links = 0
     for p in all_md:
@@ -311,14 +396,14 @@ def build_state(vault: Path) -> dict:
     # parse_projects and parse_jobs expect; this is a separate view of it.
     folder_rows = []
     for f in folders:
-        md = list((vault / f).rglob("*.md"))
+        md = [p for p in all_md if under(p, vault / f)]
         folder_rows.append({
             "name": re.sub(r"^\d{2} - ", "", f),
             "folder": f,
             "notes": len(md),
             "words": sum(len(read(p).split()) for p in md),
         })
-    zk_md = [p for f in zk for p in (vault / f).rglob("*.md")]
+    zk_md = [p for p in all_md if any(under(p, vault / f) for f in zk)]
     if zk_md:
         folder_rows.append({
             "name": "Zettelkasten",
@@ -389,6 +474,24 @@ class Handler(BaseHTTPRequestHandler):
             if not f.is_file():
                 self._send(404, b"missing hud asset", "text/plain; charset=utf-8")
                 return
+            self._send(200, f.read_bytes(), ctype)
+            return
+
+        for prefix, root in ASSET_DIRS.items():
+            if not path.startswith(prefix):
+                continue
+            ctype = ASSET_TYPES.get(Path(path).suffix.lower())
+            if not ctype:
+                break
+            try:
+                # resolve() collapses any ../ before the containment check, so a
+                # traversal attempt lands outside root and is refused here.
+                f = (root / path[len(prefix):]).resolve()
+                f.relative_to(root.resolve())
+            except (ValueError, OSError):
+                break
+            if not f.is_file():
+                break
             self._send(200, f.read_bytes(), ctype)
             return
 

@@ -4,113 +4,169 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>J.K. Console</title>
+<link rel="preload" as="style" href="/fonts/fonts.css">
+<link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/hud.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23E4E6E1'/><rect x='4' y='6' width='24' height='3' fill='%2314181A'/><rect x='4' y='13' width='16' height='3' fill='%2314181A'/><rect x='4' y='20' width='20' height='3' fill='%231D6B39'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23f4f1ea'/><rect x='3' y='3' width='26' height='26' fill='none' stroke='%230b0b0b' stroke-width='3'/><circle cx='11' cy='12' r='3' fill='%234d5bff'/><circle cx='21' cy='20' r='3' fill='%23ff5c4d'/><path d='M11 12 L21 20' stroke='%230b0b0b' stroke-width='2'/></svg>">
 </head>
-<body data-state="boot">
+<body>
 
-<!-- ── master bar ─────────────────────────────────────────────── -->
-<header class="master">
-  <div class="mast">
-    <span class="mast-name" id="agentName">J.K.</span>
-    <span class="mast-sub">memory console</span>
+<a class="skip" href="#console">Skip to the console</a>
+
+<!-- ═══ ACT 0 — TITLE ═══════════════════════════════════════════ -->
+<section class="act act-hero" id="hero">
+  <div class="hero-inner">
+    <p class="eyebrow" data-anim="rise">Persistent memory for an AI agent</p>
+    <h1 class="mega">
+      <span class="mega-line" data-anim="mega">A mind</span>
+      <span class="mega-line" data-anim="mega">that persists</span>
+    </h1>
+    <p class="hero-lede" data-anim="rise">
+      Most assistants forget you when the tab closes. This one keeps its memory
+      outside the model, as plain markdown you own.
+    </p>
+    <dl class="hero-figs" data-anim="rise">
+      <div><dt>notes</dt><dd data-count id="h-notes">0</dd></div>
+      <div><dt>links</dt><dd data-count id="h-links">0</dd></div>
+      <div><dt>jobs</dt><dd data-count id="h-jobs">0</dd></div>
+    </dl>
+    <p class="scroll-cue" data-anim="rise"><span></span>Scroll</p>
+  </div>
+</section>
+
+<!-- ═══ ACT 1–3 — THE SCROLL STORY ══════════════════════════════ -->
+<section class="story" id="story">
+  <div class="story-stage">
+    <canvas id="constellation"></canvas>
+    <p class="stage-caption" id="stageCaption"></p>
+    <div class="stage-count"><b id="stageCount"></b><span id="stageCountLabel"></span></div>
   </div>
 
-  <ul class="lamps" id="lamps" aria-label="System lamps"></ul>
+  <div class="story-rail">
+    <article class="beat" data-beat="0">
+      <p class="beat-no">01</p>
+      <h2>Every session starts as a stranger</h2>
+      <p>A context window has a ceiling. Fill it and the oldest things fall out
+      first, which is usually everything you explained about your own work.</p>
+    </article>
 
-  <div class="master-right">
-    <label class="find" for="search">
-      <span class="find-label">filter</span>
-      <input id="search" type="search" autocomplete="off" spellcheck="false"
-             aria-label="Filter priorities, jobs and projects">
-      <kbd>/</kbd>
-    </label>
-    <span class="clock" id="clock">--:--:--</span>
-    <button class="key" id="refresh" type="button">Refresh</button>
+    <article class="beat" data-beat="1">
+      <p class="beat-no">02</p>
+      <h2>So the memory moved out of the model</h2>
+      <p>Every note in the vault is a file on disk. Nothing here is embedded, indexed
+      by a vector database, or held in a window. This is the real graph, drawn live.</p>
+    </article>
+
+    <article class="beat" data-beat="2">
+      <p class="beat-no">03</p>
+      <h2>Structure is what makes it findable</h2>
+      <p>Notes link to each other. Folder indexes map each area. The agent starts
+      at the root index and walks, rather than searching and hoping.</p>
+    </article>
+
+    <article class="beat" data-beat="3">
+      <p class="beat-no">04</p>
+      <h2>A job loads only what it needs</h2>
+      <p>One note per recurring task names the handful of notes that task requires.
+      Watch the vault go dark. That is the whole idea, on real data.</p>
+      <div class="job-picker" id="jobPicker" role="group" aria-label="Choose a job to preview"></div>
+    </article>
+
+    <article class="beat" data-beat="4">
+      <p class="beat-no">05</p>
+      <h2>And it keeps itself honest</h2>
+      <p>A validator walks the vault the way the agent does at boot and fails loudly
+      on a dead end. The console below is that check, running now.</p>
+    </article>
   </div>
-</header>
+</section>
 
-<main class="console" id="console" aria-busy="true">
+<!-- ═══ ACT 4 — THE LIVE CONSOLE ════════════════════════════════ -->
+<section class="console-wrap" id="console">
+  <header class="console-head">
+    <div>
+      <h2 class="section-title">The console</h2>
+      <p class="section-sub">Live, read only, reading the vault every 30 seconds.</p>
+    </div>
+    <div class="console-tools">
+      <label class="find" for="search">
+        <span>filter</span>
+        <input id="search" type="search" autocomplete="off" spellcheck="false"
+               aria-label="Filter open work, jobs and projects">
+        <kbd>/</kbd>
+      </label>
+      <span class="clock" id="clock">--:--:--</span>
+      <button class="btn" id="refresh" type="button">Refresh</button>
+    </div>
+  </header>
 
-  <!-- ── hero: the status block ──────────────────────────────── -->
-  <section class="mod mod-status" aria-labelledby="statusHead">
-    <h2 class="mod-head" id="statusHead">Memory status</h2>
-    <div class="status-body">
-      <div class="status-word">
+  <div class="grid" id="grid" aria-busy="true">
+
+    <section class="card card-status">
+      <h3 class="card-head">Memory status</h3>
+      <div class="status-body">
         <p class="verdict" id="verdict">CHECKING</p>
         <p class="verdict-sub" id="verdictSub">reading vault</p>
+        <dl class="figs">
+          <div><dt>notes</dt><dd id="f-notes">—</dd></div>
+          <div><dt>links</dt><dd id="f-links">—</dd></div>
+          <div><dt>words</dt><dd id="f-words">—</dd></div>
+          <div><dt>checks</dt><dd id="f-checks">—</dd></div>
+        </dl>
       </div>
-      <dl class="status-figs">
-        <div><dt>notes</dt><dd id="f-notes">—</dd></div>
-        <div><dt>links</dt><dd id="f-links">—</dd></div>
-        <div><dt>words</dt><dd id="f-words">—</dd></div>
-        <div><dt>checks</dt><dd id="f-checks">—</dd></div>
-      </dl>
-    </div>
-  </section>
+    </section>
 
-  <section class="mod mod-faults" aria-labelledby="faultHead">
-    <h2 class="mod-head" id="faultHead">Faults &amp; advisories <b id="faultMeta"></b></h2>
-    <div class="mod-body scroll" id="faults"></div>
-  </section>
+    <section class="card card-faults">
+      <h3 class="card-head">Faults <b id="faultMeta"></b></h3>
+      <div class="card-body scroll" id="faults"></div>
+    </section>
 
-  <!-- ── channel strip ───────────────────────────────────────── -->
-  <section class="mod mod-strip" aria-labelledby="stripHead">
-    <h2 class="mod-head" id="stripHead">Channels</h2>
-    <div class="strip" id="strip"></div>
-  </section>
+    <section class="card card-open">
+      <h3 class="card-head">Open work <b id="prMeta"></b></h3>
+      <div class="card-body scroll" id="priorities"></div>
+    </section>
 
-  <!-- ── row 3 ───────────────────────────────────────────────── -->
-  <section class="mod mod-open" aria-labelledby="openHead">
-    <h2 class="mod-head" id="openHead">Open work <b id="prMeta"></b></h2>
-    <div class="mod-body scroll" id="priorities"></div>
-  </section>
+    <section class="card card-jobs">
+      <h3 class="card-head">Jobs <b id="jobMeta"></b></h3>
+      <div class="card-body scroll" id="jobs"></div>
+    </section>
 
-  <section class="mod mod-jobs" aria-labelledby="jobHead">
-    <h2 class="mod-head" id="jobHead">Jobs <b id="jobMeta"></b></h2>
-    <div class="mod-body scroll" id="jobs"></div>
-  </section>
+    <section class="card card-dist">
+      <h3 class="card-head">Notes per folder</h3>
+      <div class="card-body scroll" id="dist"></div>
+    </section>
 
-  <section class="mod mod-dist" aria-labelledby="distHead">
-    <h2 class="mod-head" id="distHead">Distribution <b>notes per folder</b></h2>
-    <div class="mod-body scroll" id="dist"></div>
-  </section>
+    <section class="card card-log">
+      <h3 class="card-head">Daily log <b id="dailyMeta"></b></h3>
+      <div class="card-body scroll" id="daily"></div>
+    </section>
 
-  <!-- ── row 4 ───────────────────────────────────────────────── -->
-  <section class="mod mod-log" aria-labelledby="logHead">
-    <h2 class="mod-head" id="logHead">Daily log <b id="dailyMeta"></b></h2>
-    <div class="mod-body scroll" id="daily"></div>
-  </section>
+    <section class="card card-proj">
+      <h3 class="card-head">Projects <b id="projMeta"></b></h3>
+      <div class="card-body scroll" id="projects"></div>
+    </section>
+  </div>
 
-  <section class="mod mod-proj" aria-labelledby="projHead">
-    <h2 class="mod-head" id="projHead">Projects <b id="projMeta"></b></h2>
-    <div class="mod-body scroll" id="projects"></div>
-  </section>
+  <p class="footline">
+    <span id="footLeft"></span>
+    <span class="path" id="vaultPath"></span>
+  </p>
+</section>
 
-  <section class="mod mod-graph" aria-labelledby="graphHead">
-    <h2 class="mod-head" id="graphHead">Link graph <b id="graphMeta"></b></h2>
-    <div class="graph-wrap">
-      <canvas id="constellation" aria-hidden="true"></canvas>
-      <p class="graph-note" id="graphNote"></p>
-    </div>
-  </section>
-
-</main>
-
-<footer class="footline">
-  <span id="footLeft"></span>
-  <span class="path" id="vaultPath"></span>
-</footer>
+<!-- node inspector -->
+<div class="tip" id="tip" hidden></div>
 
 <div class="sheet" id="detail" hidden>
   <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
-    <button class="key sheet-close" id="detailClose" type="button">Close <kbd>esc</kbd></button>
+    <button class="btn sheet-close" id="detailClose" type="button">Close <kbd>esc</kbd></button>
     <p class="sheet-kicker" id="detailKicker"></p>
     <h3 id="detailTitle"></h3>
     <div id="detailBody"></div>
   </div>
 </div>
 
+<script src="/vendor/gsap.min.js"></script>
+<script src="/vendor/ScrollTrigger.min.js"></script>
 <script src="/hud.js"></script>
 </body>
 </html>

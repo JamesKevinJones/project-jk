@@ -8,6 +8,42 @@ deliberately. If a choice would look wrong without context, it belongs here.
 
 ---
 
+## 2026-08-19 — The console adopts StarMatch's neo-brutalism, and vendors its dependencies
+
+**Context.** The console had been through two dark variants and one light instrument panel. The brief became explicit: take the visual language from StarMatch, add a GSAP scroll story, make the graph nodes actually interactive, and use the supplied typefaces.
+
+**Decision.** Reuse StarMatch's language directly: hard 3px ink borders, hard offset shadows with no blur, flat unblended accents, 2px radius, paper on ink with a proper dark inversion. GSAP and ScrollTrigger are copied out of StarMatch's `node_modules` into `hud/vendor/`; the three typefaces are downloaded into `hud/fonts/` by `scripts/fetch-fonts.py`.
+
+**Why not the alternative.** Linking GSAP and Google Fonts from a CDN is one line each and would have been faster. But the server is deliberately `127.0.0.1` with no external requests, and a console that breaks on a flaky connection is worse than one that ships 268KB of woff2. Vendoring also pins the version to the one StarMatch already runs.
+
+**Consequences.** `hud/fonts/` and `hud/vendor/` are served by prefix rather than by name, so the handler resolves each path and confirms containment before reading. Swapping a typeface is `fetch-fonts.py` plus one token, not a rebuild.
+
+---
+
+## 2026-08-19 — Colour that sits on an accent background is pinned, never inherited
+
+**Context.** Adding dark mode broke four elements at once. Pills, fault codes, and selected rows paint a fixed accent background (acid, mint, coral) but took their text colour from `--fg`, which flips to paper in dark mode. Paper on acid measured 1.1:1.
+
+**Decision.** Any element with a fixed accent background pins a literal ink foreground rather than inheriting a theme token. `--volt` is barred from sitting behind small text entirely, because it measures roughly 3:1 against both white and ink.
+
+**Why not the alternative.** Defining accent-specific foreground tokens per theme would work, but it doubles the token surface and the failure is silent when someone adds a fifth accent. A fixed background implies a fixed foreground; treating that as a rule makes the next accent safe by default.
+
+**Consequences.** Thirty-nine probes pass in both themes with a floor of 9.72:1. A related trap is documented in `AGENTS.md`: `.beat p` is class+type, so `.beat-no` and even `p.beat-no` lose to it and the colour silently reverts.
+
+---
+
+## 2026-08-19 — An animation may never leave content hidden
+
+**Context.** `gsap.from()` writes the start state immediately on creation. The hero content sat at opacity 0 whenever the tween did not run, which happens if rAF is throttled in a background tab or GSAP fails to load. Four elements were measurably stuck invisible.
+
+**Decision.** The entrance timeline carries a `setTimeout` failsafe that clears the inline styles if the timeline has not completed, and scroll-triggered headings use `fromTo(..., immediateRender: false)` so the hidden state is never applied until the trigger fires.
+
+**Why not the alternative.** Relying on the animation always running is the assumption that caused it. `setTimeout` is deliberately chosen over anything rAF-based, because rAF not firing is exactly the failure being guarded against.
+
+**Consequences.** Content is readable whether or not the animation library loads, which also makes the page degrade correctly if `hud/vendor/` is ever missing.
+
+---
+
 ## 2026-08-19 — The console is a light instrument panel, not a dark dashboard
 
 **Context.** Two passes at the HUD were dark: cyan on blue-black, then amber on warm near-black. Both were legible on paper and both drew the same feedback in practice — too dark to read comfortably, too sparse, and still recognisably an AI-generated dashboard.
