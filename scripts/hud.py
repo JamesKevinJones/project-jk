@@ -306,8 +306,30 @@ def build_state(vault: Path) -> dict:
         words += len(t.split())
         links += len(WIKILINK.findall(t))
 
+    # Per-folder breakdown so the console can chart real distribution rather
+    # than draw a decorative bar. `folders` stays the list of NAMES that
+    # parse_projects and parse_jobs expect; this is a separate view of it.
+    folder_rows = []
+    for f in folders:
+        md = list((vault / f).rglob("*.md"))
+        folder_rows.append({
+            "name": re.sub(r"^\d{2} - ", "", f),
+            "folder": f,
+            "notes": len(md),
+            "words": sum(len(read(p).split()) for p in md),
+        })
+    zk_md = [p for f in zk for p in (vault / f).rglob("*.md")]
+    if zk_md:
+        folder_rows.append({
+            "name": "Zettelkasten",
+            "folder": "",
+            "notes": len(zk_md),
+            "words": sum(len(read(p).split()) for p in zk_md),
+        })
+
     v = run_validator(vault)
     return {
+        "folders": folder_rows,
         "ok": True,
         "agent": agent_name(),
         "vault": str(vault),
@@ -317,7 +339,7 @@ def build_state(vault: Path) -> dict:
             "words": words,
             "links": links,
             "systemFolders": len(folders),
-            "zettel": sum(1 for f in zk for _ in (vault / f).rglob("*.md")),
+            "zettel": len(zk_md),
         },
         "priorities": parse_priorities(vault),
         "projects": parse_projects(vault, folders),

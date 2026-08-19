@@ -8,6 +8,18 @@ deliberately. If a choice would look wrong without context, it belongs here.
 
 ---
 
+## 2026-08-19 — The console is a light instrument panel, not a dark dashboard
+
+**Context.** Two passes at the HUD were dark: cyan on blue-black, then amber on warm near-black. Both were legible on paper and both drew the same feedback in practice — too dark to read comfortably, too sparse, and still recognisably an AI-generated dashboard.
+
+**Decision.** Invert it. A light gray-green anodised panel face with black legend text, colour reserved entirely for lamp states (green nominal, amber advisory, red fault), a twelve-column grid of nine modules sized to fill a 1440x900 screen exactly, and tabular right-aligned numerals throughout.
+
+**Why not the alternative.** A third dark variant would have been a palette swap on a look that had already failed twice. "Dark plus one bright accent" is the default that AI-generated interfaces converge on, so staying dark meant fighting the association with styling. Real instrument panels — Apollo, Soyuz, avionics stacks — are light, and going light fixed the legibility complaint and the generic-look complaint with the same move.
+
+**Consequences.** Colour is now load-bearing: green, amber, and red mean exactly one thing each and nothing decorative may use them, so a red pixel anywhere always means something is wrong. Adding a "brand" colour later would break that contract. The hero is a status verdict, not the graph; the graph was demoted to one module of nine.
+
+---
+
 ## 2026-08-19 — The HUD's hero is the vault's real link graph, not an arc reactor
 
 **Context.** The first HUD centred on a rotating arc reactor: cyan on blue-black, concentric rings, scanlines, corner brackets. It looked the part and meant nothing. It would have sat unchanged on any other project, which is the definition of a default rather than a choice.

@@ -3,106 +3,113 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>J.K. HUD</title>
+<title>J.K. Console</title>
 <link rel="stylesheet" href="/hud.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='4' fill='%23E8A33D'/><circle cx='6' cy='9' r='2' fill='%23E8A33D' opacity='.7'/><circle cx='26' cy='11' r='2' fill='%23E8A33D' opacity='.7'/><circle cx='9' cy='25' r='2' fill='%23E8A33D' opacity='.7'/><circle cx='25' cy='24' r='2' fill='%233FC7D4'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23E4E6E1'/><rect x='4' y='6' width='24' height='3' fill='%2314181A'/><rect x='4' y='13' width='16' height='3' fill='%2314181A'/><rect x='4' y='20' width='20' height='3' fill='%231D6B39'/></svg>">
 </head>
 <body data-state="boot">
 
-<!-- the vault's link graph, drawn behind everything -->
-<canvas id="constellation" aria-hidden="true"></canvas>
-<div class="grain" aria-hidden="true"></div>
-
-<header class="rail">
-  <div class="ident">
-    <span class="ident-name" id="agentName">J.K.</span>
-    <span class="ident-role">memory vault</span>
+<!-- ── master bar ─────────────────────────────────────────────── -->
+<header class="master">
+  <div class="mast">
+    <span class="mast-name" id="agentName">J.K.</span>
+    <span class="mast-sub">memory console</span>
   </div>
 
-  <div class="readout" id="readout">
-    <span class="readout-lamp" id="lamp" aria-hidden="true"></span>
-    <span class="readout-text" id="statusText">initialising</span>
-    <span class="readout-sub" id="statusSub">reading vault</span>
-  </div>
+  <ul class="lamps" id="lamps" aria-label="System lamps"></ul>
 
-  <div class="rail-right">
+  <div class="master-right">
     <label class="find" for="search">
-      <input id="search" type="search" placeholder="filter" autocomplete="off" spellcheck="false" aria-label="Filter priorities, projects and jobs">
+      <span class="find-label">filter</span>
+      <input id="search" type="search" autocomplete="off" spellcheck="false"
+             aria-label="Filter priorities, jobs and projects">
       <kbd>/</kbd>
     </label>
     <span class="clock" id="clock">--:--:--</span>
-    <button class="ghost" id="refresh" type="button">Refresh</button>
+    <button class="key" id="refresh" type="button">Refresh</button>
   </div>
 </header>
 
-<main class="stage" id="stage" aria-busy="true">
+<main class="console" id="console" aria-busy="true">
 
-  <div class="flank flank-l">
-    <section class="bezel" style="--i:0">
-      <h2 class="bezel-title">Systems <b id="sysMeta"></b></h2>
-      <div id="systems" class="pad">
-        <div class="ghost-row"></div><div class="ghost-row"></div><div class="ghost-row"></div>
+  <!-- ── hero: the status block ──────────────────────────────── -->
+  <section class="mod mod-status" aria-labelledby="statusHead">
+    <h2 class="mod-head" id="statusHead">Memory status</h2>
+    <div class="status-body">
+      <div class="status-word">
+        <p class="verdict" id="verdict">CHECKING</p>
+        <p class="verdict-sub" id="verdictSub">reading vault</p>
       </div>
-    </section>
+      <dl class="status-figs">
+        <div><dt>notes</dt><dd id="f-notes">—</dd></div>
+        <div><dt>links</dt><dd id="f-links">—</dd></div>
+        <div><dt>words</dt><dd id="f-words">—</dd></div>
+        <div><dt>checks</dt><dd id="f-checks">—</dd></div>
+      </dl>
+    </div>
+  </section>
 
-    <section class="bezel" style="--i:1">
-      <h2 class="bezel-title">Memory</h2>
-      <div class="pad">
-        <dl class="gauges">
-          <div><dt>notes</dt><dd id="g-notes">-</dd></div>
-          <div><dt>links</dt><dd id="g-links">-</dd></div>
-          <div><dt>words</dt><dd id="g-words">-</dd></div>
-        </dl>
-        <p class="path" id="vaultPath"></p>
-      </div>
-    </section>
+  <section class="mod mod-faults" aria-labelledby="faultHead">
+    <h2 class="mod-head" id="faultHead">Faults &amp; advisories <b id="faultMeta"></b></h2>
+    <div class="mod-body scroll" id="faults"></div>
+  </section>
 
-    <section class="bezel flex" style="--i:2">
-      <h2 class="bezel-title">Daily log <b id="dailyMeta"></b></h2>
-      <div id="daily" class="pad scroll"></div>
-    </section>
-  </div>
+  <!-- ── channel strip ───────────────────────────────────────── -->
+  <section class="mod mod-strip" aria-labelledby="stripHead">
+    <h2 class="mod-head" id="stripHead">Channels</h2>
+    <div class="strip" id="strip"></div>
+  </section>
 
-  <!-- centre stays clear: the constellation is the hero -->
-  <div class="core" id="core">
-    <p class="core-count" id="coreCount"></p>
-    <p class="core-label" id="coreLabel"></p>
-    <button class="core-reset" id="coreReset" type="button" hidden>Show whole vault</button>
-  </div>
+  <!-- ── row 3 ───────────────────────────────────────────────── -->
+  <section class="mod mod-open" aria-labelledby="openHead">
+    <h2 class="mod-head" id="openHead">Open work <b id="prMeta"></b></h2>
+    <div class="mod-body scroll" id="priorities"></div>
+  </section>
 
-  <div class="flank flank-r">
-    <section class="bezel flex" style="--i:3">
-      <h2 class="bezel-title">Open <b id="prMeta"></b></h2>
-      <div id="priorities" class="pad scroll">
-        <div class="ghost-row"></div><div class="ghost-row"></div>
-      </div>
-    </section>
+  <section class="mod mod-jobs" aria-labelledby="jobHead">
+    <h2 class="mod-head" id="jobHead">Jobs <b id="jobMeta"></b></h2>
+    <div class="mod-body scroll" id="jobs"></div>
+  </section>
 
-    <section class="bezel" style="--i:4">
-      <h2 class="bezel-title">Projects <b id="projMeta"></b></h2>
-      <div id="projects" class="pad scroll short"></div>
-    </section>
+  <section class="mod mod-dist" aria-labelledby="distHead">
+    <h2 class="mod-head" id="distHead">Distribution <b>notes per folder</b></h2>
+    <div class="mod-body scroll" id="dist"></div>
+  </section>
 
-    <section class="bezel flex" style="--i:5">
-      <h2 class="bezel-title">Jobs <b id="jobMeta"></b></h2>
-      <p class="hint">Select one to see what it loads, and nothing else.</p>
-      <div id="jobs" class="pad scroll"></div>
-    </section>
-  </div>
+  <!-- ── row 4 ───────────────────────────────────────────────── -->
+  <section class="mod mod-log" aria-labelledby="logHead">
+    <h2 class="mod-head" id="logHead">Daily log <b id="dailyMeta"></b></h2>
+    <div class="mod-body scroll" id="daily"></div>
+  </section>
+
+  <section class="mod mod-proj" aria-labelledby="projHead">
+    <h2 class="mod-head" id="projHead">Projects <b id="projMeta"></b></h2>
+    <div class="mod-body scroll" id="projects"></div>
+  </section>
+
+  <section class="mod mod-graph" aria-labelledby="graphHead">
+    <h2 class="mod-head" id="graphHead">Link graph <b id="graphMeta"></b></h2>
+    <div class="graph-wrap">
+      <canvas id="constellation" aria-hidden="true"></canvas>
+      <p class="graph-note" id="graphNote"></p>
+    </div>
+  </section>
+
 </main>
 
-<div class="tip" id="tip" hidden></div>
+<footer class="footline">
+  <span id="footLeft"></span>
+  <span class="path" id="vaultPath"></span>
+</footer>
 
 <div class="sheet" id="detail" hidden>
   <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
-    <button class="sheet-close" id="detailClose" type="button">Close <kbd>esc</kbd></button>
+    <button class="key sheet-close" id="detailClose" type="button">Close <kbd>esc</kbd></button>
     <p class="sheet-kicker" id="detailKicker"></p>
     <h3 id="detailTitle"></h3>
     <div id="detailBody"></div>
   </div>
 </div>
-
-<p class="footline" id="footer"></p>
 
 <script src="/hud.js"></script>
 </body>

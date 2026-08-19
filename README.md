@@ -18,7 +18,7 @@ Built on [ai-memory-vault](https://github.com/jaredrhod/ai-memory-vault) by [Jar
 - [How the system was built](#how-the-system-was-built)
 - [Every file, and what it does](#every-file-and-what-it-does)
 - [Jobs: the part that makes it an operating system](#jobs-the-part-that-makes-it-an-operating-system)
-- [The HUD](#the-hud)
+- [The console](#the-console)
 - [The vault rules](#the-vault-rules)
 - [Set it up for yourself](#set-it-up-for-yourself)
 - [Verifying it actually works](#verifying-it-actually-works)
@@ -84,7 +84,7 @@ flowchart LR
         A["AGENTS.md<br/><i>identity, vault path, hard rules</i>"]
         C["CLAUDE.md<br/><i>one line: @AGENTS.md</i>"]
         D["docs/<br/><i>STATE, DECISIONS, VERIFY</i>"]
-        S["scripts/ + hud/<br/><i>setup, validate, HUD</i>"]
+        S["scripts/ + hud/<br/><i>setup, validate, console</i>"]
     end
     subgraph VAULT["Memory (private Obsidian vault)"]
         V["VAULT-INDEX.md<br/><i>profile and map</i>"]
@@ -117,13 +117,13 @@ project-jk/
 │   ├── DECISIONS.md             why it is built this way, append only
 │   └── VERIFY.md                exact commands that prove a change works
 ├── hud/
-│   ├── index.html               the heads-up display
-│   ├── hud.css                  one cyan accent, hairline strokes, no framework
+│   ├── index.html               the instrument console
+│   ├── hud.css                  light anodised panel, colour reserved for lamp states
 │   └── hud.js                   vanilla, no dependencies
 ├── scripts/
 │   ├── setup.ps1                wires a vault, seeds notes, drops launchers
 │   ├── validate.py              walks the vault the way the agent does at boot
-│   └── hud.py                   stdlib server, reads the vault, serves the HUD
+│   └── hud.py                   stdlib server, reads the vault, serves the console
 └── templates/
     ├── BOOT-CONFIG.md           AGENTS.md with personal content stripped
     ├── VAULT-INDEX.md           the operating manual, blank
@@ -201,8 +201,8 @@ The validator itself had a bug too: it flagged prose *about* wikilink syntax as 
 | `docs/VERIFY.md` | Exact commands that prove a change works. | Rarely |
 | `scripts/setup.ps1` | Wires a vault to the config, seeds starter notes, drops a launcher. | Rarely |
 | `scripts/validate.py` | Walks the vault the way the agent does at boot and fails loudly. | Rarely |
-| `scripts/hud.py` | Local server that reads the vault and serves the HUD. | Rarely |
-| `hud/` | The heads-up display. Vanilla HTML, CSS, and JS. | Rarely |
+| `scripts/hud.py` | Local server that reads the vault and serves the console. | Rarely |
+| `hud/` | The instrument console. Vanilla HTML, CSS, and JS. | Rarely |
 
 ### `AGENTS.md` in detail
 
@@ -264,42 +264,49 @@ That Job also carries a hard prohibition in its quality bar: **never submit an a
 
 **Add a Job the moment you explain the same task twice.**
 
-## The HUD
+## The console
 
-A markdown vault is excellent for an agent and hard for a human to see at a glance. The HUD is a local heads-up display that reads the vault live and shows what the agent sees at boot.
+A markdown vault is excellent for an agent and hard for a person to read at a glance. The console is a local, read-only instrument panel over it.
 
 ```bash
 python scripts/hud.py
 ```
 
-It opens at `http://127.0.0.1:7842`. There is also a desktop shortcut, `<agent> HUD.bat`, if you would rather not remember the command.
+It opens at `http://127.0.0.1:7842`. There is a desktop shortcut too, `<agent> HUD.bat`.
 
-### The constellation
+### What it shows
 
-The centrepiece is not decoration. It is the vault's actual link graph, drawn from the real data: every note is a node, every resolved wikilink is an edge, and node size follows how connected a note is. Unresolved links are not drawn, because drawing one would claim a connection that does not exist.
+Nine modules on a twelve-column grid, sized to fit one screen at 1440x900 with no scrolling and no empty space.
 
-**Select a Job and the vault goes dark except for what that Job loads.** That is the system's central claim, made visible instead of asserted. "Ship a Change to a Kevin Codes Project" lights 3 of 110 notes; the readout counts it for you. It is also the fastest way to see when a boot chain has quietly grown too broad to be useful.
-
-A pleasant surprise on first run: the most connected notes in the graph are from the Zettelkasten that predates this system. The old notes and the new memory layer render as one mind, which is the argument for layering rather than migrating.
-
-**What it shows**
-
-| Panel | Reads from |
+| Module | Reads from |
 |---|---|
-| Systems | `validate.py`, run live. Amber when the vault traverses clean, red with the specific faults when it does not. |
-| Memory | Note, wikilink, and word counts, plus the vault path. |
-| Daily log | The `## Index` block of each recent daily note, so you can scan a week in seconds. |
-| Open | Priorities with their project tags. |
-| Projects | One row per project folder. Click for its slug, index status, and open items. |
-| Jobs | One row per Job. Click to light its boot chain in the graph, double-click for the full note. |
+| Memory status | The hero. One word (NOMINAL or FAULT) plus notes, links, words, and checks run. |
+| Faults and advisories | `validate.py` output, itemised. Empty state says "no faults" rather than showing nothing. |
+| Channels | Seven meters: counts, link density per note, and average boot-chain length. |
+| Open work | Priorities as a table, project tag and state per row. |
+| Jobs | One row per Job with chain length, notes lit, and step count. |
+| Distribution | Notes per folder as bars, sorted, with the pre-existing Zettelkasten shown separately. |
+| Daily log | The `## Index` block of each recent daily note. |
+| Projects | Slug, note count, and whether the folder index exists. |
+| Link graph | The vault's real wikilink graph. Select a Job to light its chain. |
 
-Type `/` to filter Open, Projects, and Jobs at once. `Esc` clears the selection, then the filter. It re-reads the vault every 30 seconds.
+Select a Job and the graph dims everything except the notes that Job loads. `/` filters Open work, Jobs, and Projects at once. `Esc` clears the selection, then the filter. Rows are keyboard-reachable; `Enter` selects, `i` opens the full Job note.
 
-**How it is built.** Standard library Python, vanilla JavaScript, hand-written CSS. No framework, no bundler, no dependencies, no build step. The force simulation is about forty lines; at 108 nodes a quadtree would be complexity with nothing to show for it. The server binds to `127.0.0.1` and serves exactly four paths by name rather than a directory, because the vault it reads is private.
+### The visual direction
 
-**The visual direction.** Iron Man's suit is gold and red, and only the reactor is blue, so amber carries the entire interface and cyan is spent once, on the live core. The ground is a warm near-black (`#0A0906`), not the blue-black that every dark dashboard defaults to. Type is Bahnschrift, a DIN descendant and therefore the vernacular of gauges, signage, and engineering drawings, paired with Cascadia Mono for data because the vault is text files and mono is honest about that. Both ship with Windows, so the page makes no network request for a font.
+An instrument panel, not a screensaver. The first two attempts were dark with a single bright accent, which is the look AI-generated dashboards converge on, and the legibility suffered for it. Real instrument panels are the opposite: Apollo, Soyuz, and avionics stacks use light gray-green anodised faces with black legend text, and reserve colour entirely for lamp states.
 
-**Accessibility.** A force-directed graph on a canvas is close to unusable for a screen reader, so the canvas is `aria-hidden` and never the only route to a fact: every node, count, and boot chain it draws is also readable as text in the panels beside it. Every text colour was measured against its composited background rather than eyeballed; the lowest is 5.57:1 against a 4.5:1 requirement. Status uses fill and shape, not hue alone. Tap targets reach 44px where a finger is the pointer, and `prefers-reduced-motion` settles the simulation instantly instead of animating it, while keeping opacity fades, because killing every animation makes an interface feel broken rather than calm.
+So the console is light. Green, amber, and red mean nominal, advisory, and fault, and **nothing decorative is allowed to use them**, which means a red pixel anywhere on the panel always means something is wrong. Every number is tabular and right-aligned so columns compare by eye. There is no border-radius anywhere; panels are milled, not rounded.
+
+Type is Bahnschrift, a DIN descendant and therefore the vernacular of gauges, signage, and engineering drawings, paired with Cascadia Mono for data because the vault is text files. Both ship with Windows, so the page makes no network request for a font.
+
+### Accessibility
+
+A force-directed graph on a canvas is close to unusable for a screen reader, so the canvas is `aria-hidden` and is never the only route to a fact: every number and boot chain it draws is also a table cell next to it. Thirty-one text colours were measured against their real composited backgrounds with transitions frozen; the lowest is 4.9:1 against a 4.5:1 requirement. Lamp state is carried by fill and label, not hue alone. Interactive rows are focusable and operable by keyboard, and reach 44px on touch. There is almost no motion, which is correct for a panel you read rather than watch.
+
+### How it is built
+
+Standard library Python, vanilla JavaScript, hand-written CSS. No framework, no bundler, no dependencies, no build step. The server binds to `127.0.0.1` and serves exactly four paths by name rather than a directory, because the vault it reads is private.
 
 ## The vault rules
 
