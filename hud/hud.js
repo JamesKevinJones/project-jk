@@ -780,6 +780,11 @@ const Explain = (() => {
     openOn = node;
 
     const r = node.getBoundingClientRect();
+    // Park at a known origin before measuring. Measuring while the box still
+    // sits at the previous anchor's position can report a stale height, and the
+    // clamp below then lets it hang off the bottom edge.
+    box.style.left = '0px';
+    box.style.top = '0px';
     const b = box.getBoundingClientRect();
     // prefer below, flip above when it would run off the bottom
     let top = r.bottom + 8;
@@ -790,8 +795,20 @@ const Explain = (() => {
     // popover off-screen too, which is reachable via keyboard focus.
     top = Math.min(Math.max(8, top), Math.max(8, innerHeight - b.height - 8));
     left = Math.min(Math.max(8, left), Math.max(8, innerWidth - b.width - 8));
-    box.style.left = Math.round(left) + 'px';
-    box.style.top = Math.round(top) + 'px';
+    box.style.left = Math.floor(left) + 'px';
+    box.style.top = Math.floor(top) + 'px';
+
+    // Correct against the box as actually laid out. The pre-measure can report
+    // a shorter height than the final render, which left the popover hanging
+    // off the bottom edge; measuring once more after placement is cheap and
+    // does not depend on knowing why the first measurement was short.
+    const f = box.getBoundingClientRect();
+    if (f.bottom > innerHeight - 8) {
+      box.style.top = Math.floor(Math.max(8, innerHeight - f.height - 8)) + 'px';
+    }
+    if (f.right > innerWidth - 8) {
+      box.style.left = Math.floor(Math.max(8, innerWidth - f.width - 8)) + 'px';
+    }
   }
 
   function hide() {

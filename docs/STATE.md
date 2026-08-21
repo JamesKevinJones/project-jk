@@ -3,7 +3,7 @@
 > Updated at the end of every session, by whichever agent was driving.
 > Keep it under a page. This is a baton, not a diary.
 
-**Last updated:** 2026-08-19 (late) by claude-code
+**Last updated:** 2026-08-19 (late) by claude-code, resumed and re-verified
 
 ## Where things stand
 
@@ -17,7 +17,11 @@ The console (`python scripts/hud.py`, or the `J.K. HUD.bat` desktop shortcut) se
 
 Verified in a browser: 108 nodes / 269 edges render and paint; hovering a node shows its name, kind and link count; clicking opens it with its real neighbours; job chips drop the lit graph from 45,417 to 5,392 painted pixels; the story fires the right beat at every scroll depth; 39 text colours pass contrast in both light and dark with a floor of 9.72:1; no overflow and all 19 tap targets clear 44px at 375px.
 
-Snapshot cost went from 3.9s to **0.35s warm** after fixing a validator cache that never stored its result, collapsing seven vault walks into one, and making reads generation-scoped.
+Snapshot cost went from 3.9s to **0.22s warm** after fixing a validator cache that never stored its result, collapsing seven vault walks into one, and making reads generation-scoped.
+
+**Known operational dependency:** the vault lives on `G:\My Drive`, which only exists while Google Drive is running. With `GoogleDriveFS` stopped, `G:` is not mounted at all, the validator fails with `vault does not exist`, and the console shows its "Vault not found" state. That is correct behaviour, not a defect. Start `GoogleDriveFS.exe` and the mount returns in a few seconds. It is in the HKCU Run key, so a normal login mounts it automatically.
+
+PUSAB renders via `hud/fonts-local/` (gitignored, served over localhost). Luminari is **not** installed on this machine, so the serif falls back to Grenze as designed; confirmed by width-probe rather than assumed.
 
 ## In progress
 
